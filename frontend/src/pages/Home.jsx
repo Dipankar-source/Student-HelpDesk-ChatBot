@@ -1,3 +1,4 @@
+// Home.jsx
 import { useState, useRef, useEffect } from "react";
 import {
   collection,
@@ -13,7 +14,6 @@ import {
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../service/firebase";
 import {
-  GEMINI_API_URL,
   languages,
   categories,
   quickMessages,
@@ -26,6 +26,13 @@ import Chat from "../components/Chat";
 import InputArea from "../components/InputArea";
 import QuickMessages from "../components/QuickMessages";
 import Footer from "../components/Footer";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// DeepSeek API configuration
+const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
+const DEEPSEEK_API_KEY =
+  "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"; // Replace with a valid key
 
 const Home = () => {
   const [messages, setMessages] = useState([
@@ -41,7 +48,7 @@ const Home = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [isListening, setIsListening] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // start muted
+  const [isMuted, setIsMuted] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,20 +59,18 @@ const Home = () => {
   const [isFirstInteraction, setIsFirstInteraction] = useState(true);
   const [voices, setVoices] = useState([]);
 
-  // refs
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
   const audioContextRef = useRef(null);
   const isFirstInteractionRef = useRef(isFirstInteraction);
   const chatTopRef = useRef(null);
+  const [apiError, setApiError] = useState(null);
 
-  // keep ref in sync to avoid stale closures in event handlers
   useEffect(() => {
     isFirstInteractionRef.current = isFirstInteraction;
   }, [isFirstInteraction]);
 
-  // Filter quick messages
   const filteredQuickMessages =
     selectedCategory === "all"
       ? quickMessages.filter((msg) =>
@@ -77,7 +82,7 @@ const Home = () => {
             msg.text.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
-  // Load voices (handles onvoiceschanged)
+  // Load voices
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
 
@@ -94,13 +99,11 @@ const Home = () => {
     window.speechSynthesis.onvoiceschanged = loadVoices;
 
     return () => {
-      try {
-        window.speechSynthesis.onvoiceschanged = null;
-      } catch (e) {}
+      window.speechSynthesis.onvoiceschanged = null;
     };
   }, []);
 
-  // Initialize SpeechRecognition once
+  // Initialize SpeechRecognition
   useEffect(() => {
     if (
       !("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
@@ -122,7 +125,6 @@ const Home = () => {
         const transcript = event.results[0][0].transcript;
         setInputMessage(transcript);
 
-        // On first voice input, unlock audio and unmute
         if (isFirstInteractionRef.current) {
           try {
             await ensureAudioUnlocked();
@@ -149,34 +151,27 @@ const Home = () => {
 
     recognitionRef.current = recognition;
 
-    // cleanup on unmount
     return () => {
-      try {
-        recognition.stop();
-      } catch (e) {}
+      recognition.stop?.();
       recognition.onresult = null;
       recognition.onend = null;
       recognition.onerror = null;
       recognitionRef.current = null;
     };
-    // create once -> empty deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When selectedLanguage changes, update recognition lang (do not recreate)
   useEffect(() => {
     if (recognitionRef.current) {
       recognitionRef.current.lang = selectedLanguage;
     }
   }, [selectedLanguage]);
 
-  // Auth & sessions (same as before)
+  // Auth & sessions
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
         loadChatSessions(user.uid);
-
         if (!currentSessionId) {
           createNewSession(user.uid);
         }
@@ -187,15 +182,14 @@ const Home = () => {
           })
           .catch((error) => {
             console.error("Anonymous sign-in failed:", error);
+            toast.error("Authentication error: " + error.message);
           });
       }
     });
 
     return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load messages for current session
   useEffect(() => {
     if (!currentSessionId) return;
 
@@ -239,12 +233,14 @@ const Home = () => {
         },
         (error) => {
           console.error("Error loading sessions:", error);
+          toast.error("Error loading chat sessions: " + error.message);
         }
       );
 
       return unsubscribe;
     } catch (error) {
       console.error("Error setting up session listener:", error);
+      toast.error("Error loading chat sessions");
     }
   };
 
@@ -259,20 +255,20 @@ const Home = () => {
       setCurrentSessionId(docRef.id);
     } catch (error) {
       console.error("Error creating new session:", error);
-      const localSessionId = `local-${Date.now()}`;
-      setCurrentSessionId(localSessionId);
+      toast.error("Error creating new session");
+      setCurrentSessionId(`local-${Date.now()}`);
     }
   };
 
   const deleteSession = async (sessionId) => {
     try {
       await deleteDoc(doc(db, "sessions", sessionId));
-
       if (sessionId === currentSessionId) {
         createNewSession(userId);
       }
     } catch (error) {
       console.error("Error deleting session:", error);
+      toast.error("Error deleting session");
     }
   };
 
@@ -286,133 +282,123 @@ const Home = () => {
     return translations[targetLang] || text;
   };
 
-  const callGeminiAPI = async (userMessage, language) => {
+  const callDeepSeekAPI = async (userMessage, language) => {
     setIsTyping(true);
+    setApiError(null); // Reset any previous errors
 
     try {
-      const prompt = `
-You are EduBot, the official student assistant for Brainware University.  
-Your style must always be:
-- 🎯 Give the **direct answer first** (not vague or generic).  
-- 📌 If exact date/info is unknown, provide the **most likely details** (like typical admission months) and then politely suggest checking the official site for confirmation.  
-- 📝 Format clearly with bullet points, numbered steps, or short paragraphs.  
-- ✅ Keep tone professional and helpful (no "Hello there!" intros).  
-- 🌐 Provide links only as *additional reference* at the end, not in the middle of the answer.  
-
-Example (for "last date of application"):
-"📅 The last date for application is usually **July–August** for most UG/PG programs.  
-For exact current deadlines, please check the Admission Notice section.  
-
-🔗 Official site: www.brainwareuniversity.ac.in | ☎️ Helpline: +91-33-7144-5590"
-`;
-
-      const response = await fetch(GEMINI_API_URL, {
+      const response = await fetch(DEEPSEEK_API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.5, // less random, more factual
-            topK: 40,
-            topP: 0.9,
-            maxOutputTokens: 1024,
-          },
-          safetySettings: [
+          model: "deepseek-chat",
+          messages: [
             {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              role: "system",
+              content: `You are EduBot, the official student assistant for Brainware University.  
+              Your style must always be:
+              - 🎯 Give the direct answer first.
+              - 🔍 Search the web for the most current info when needed.
+              - 📌 If exact date/info is unknown, provide the most likely details.
+              - 📝 Format clearly with bullets, numbered steps, or short paragraphs.
+              - ✅ Keep tone professional.
+              - 🌐 Provide links at the end only.
+              - Use markdown formatting.`,
+            },
+            {
+              role: "user",
+              content: userMessage,
             },
           ],
+          temperature: 0.5,
+          max_tokens: 1024,
+          web_search: true,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        const errorMsg =
+          errData?.error?.message || `HTTP error: ${response.status}`;
+
+        setApiError(errorMsg);
+        toast.error(`AI service error: ${errorMsg}`);
+
+        // Check if it's an authentication error specifically
+        if (response.status === 401) {
+          throw new Error(
+            `Authentication failed. Please check your API key. Details: ${errorMsg}`
+          );
+        } else {
+          throw new Error(
+            `DeepSeek API error: ${response.status} - ${errorMsg}`
+          );
+        }
       }
 
       const data = await response.json();
 
-      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-        let geminiResponse = data.candidates[0].content.parts[0].text.trim();
-
-        // 🌐 Translate if user selected another language
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        let deepseekResponse = data.choices[0].message.content.trim();
         if (language !== "en") {
-          geminiResponse = await translateText(geminiResponse, language);
+          deepseekResponse = await translateText(deepseekResponse, language);
         }
-
         setIsTyping(false);
-        return geminiResponse;
+        return deepseekResponse;
       } else {
-        throw new Error("Invalid response format from Gemini API");
+        throw new Error("Invalid response format from DeepSeek API");
       }
     } catch (error) {
-      console.error("Error calling Gemini API:", error);
+      console.error("Error calling DeepSeek API:", error);
       setIsTyping(false);
-      return "⚠️ Sorry, I'm having trouble connecting. Please try again later or contact Brainware University administration.";
+
+      // Provide a helpful fallback response
+      return (
+        "I'm currently unable to access the AI service. " +
+        "This might be due to an invalid API key or service outage. " +
+        "Please check your API configuration or try again later. " +
+        "In the meantime, you can visit the [official Brainware University website](https://www.brainwareuniversity.ac.in/) for information."
+      );
     }
   };
 
-  // --- audio unlock helper (important to bypass browser autoplay restrictions) ---
   const ensureAudioUnlocked = async () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
-
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioCtx();
-      }
-
+      if (!audioContextRef.current) audioContextRef.current = new AudioCtx();
       const ctx = audioContextRef.current;
-
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-
-      // create a tiny silent buffer and play it to guarantee audio output unlocked
-      try {
-        const buffer = ctx.createBuffer(1, 1, 22050);
-        const src = ctx.createBufferSource();
-        src.buffer = buffer;
-        src.connect(ctx.destination);
-        src.start(0);
-        src.stop(0);
-      } catch (e) {
-        // some platforms may not allow this; it's best-effort
-      }
+      if (ctx.state === "suspended") await ctx.resume();
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      src.start(0);
+      src.stop(0);
     } catch (err) {
       console.warn("ensureAudioUnlocked error:", err);
     }
   };
 
-  // speak response with best matching voice
   const speakResponse = (text) => {
-    if (isMuted) return;
-    if (!("speechSynthesis" in window)) return;
-
+    if (isMuted || !("speechSynthesis" in window)) return;
     try {
       const synth = window.speechSynthesis;
-      // If voices still empty, try to fetch once more
       const availableVoices = voices.length ? voices : synth.getVoices();
       const utter = new SpeechSynthesisUtterance(text);
-
-      // Prefer voice that matches selectedLanguage (prefix match)
-      if (availableVoices && availableVoices.length > 0) {
+      if (availableVoices.length > 0) {
         const match = availableVoices.find((v) =>
           v.lang.toLowerCase().startsWith(selectedLanguage.toLowerCase())
         );
         if (match) utter.voice = match;
       }
-
-      // make sure lang is something supported (fallback to 'en-US' if single letter 'en')
-      try {
-        utter.lang =
-          selectedLanguage.length === 2
-            ? `${selectedLanguage}-US`
-            : selectedLanguage;
-      } catch (e) {
-        utter.lang = selectedLanguage;
-      }
-
+      utter.lang =
+        selectedLanguage.length === 2
+          ? `${selectedLanguage}-US`
+          : selectedLanguage;
       synth.cancel();
       synth.speak(utter);
     } catch (err) {
@@ -423,12 +409,11 @@ For exact current deadlines, please check the Admission Notice section.
   const handleSendMessage = async (messageText = inputMessage) => {
     if (!messageText.trim()) return;
 
-    // On first user-generated send, unlock audio and unmute
     if (isFirstInteraction) {
       try {
         await ensureAudioUnlocked();
       } catch (e) {
-        console.warn("Audio unlock attempt failed:", e);
+        console.warn("Audio unlock failed:", e);
       } finally {
         setIsMuted(false);
         setIsFirstInteraction(false);
@@ -458,16 +443,14 @@ For exact current deadlines, please check the Admission Notice section.
       }
     } catch (error) {
       console.error("Error saving message:", error);
+      toast.error("Error saving your message");
     }
 
     setInputMessage("");
 
-    // Scroll to top immediately after sending the message
-    if (chatTopRef.current) {
-      chatTopRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    chatTopRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    const botResponse = await callGeminiAPI(messageText, selectedLanguage);
+    const botResponse = await callDeepSeekAPI(messageText, selectedLanguage);
 
     const aiMessage = {
       text: botResponse,
@@ -480,71 +463,39 @@ For exact current deadlines, please check the Admission Notice section.
 
     try {
       await addDoc(collection(db, "messages"), aiMessage);
-
       if (currentSessionId) {
         await updateDoc(doc(db, "sessions", currentSessionId), {
           lastActivity: new Date(),
         });
       }
-
-      // Speak the response (will be no-op if still muted)
       speakResponse(botResponse);
     } catch (error) {
       console.error("Error saving AI message:", error);
+      toast.error("Error saving AI response");
     }
   };
 
   const handleQuickMessage = async (messageText) => {
-    if (isFirstInteraction) {
-      try {
-        await ensureAudioUnlocked();
-      } catch (e) {
-        console.warn("Audio unlock attempt failed:", e);
-      } finally {
-        setIsMuted(false);
-        setIsFirstInteraction(false);
-      }
-    }
-
-    // Scroll to top before sending the message
-    if (chatTopRef.current) {
-      chatTopRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-
     handleSendMessage(messageText);
   };
 
   const toggleVoice = async () => {
     if (isListening) {
-      try {
-        recognitionRef.current?.stop();
-      } catch (e) {
-        console.warn("recognition stop error:", e);
-      }
+      recognitionRef.current?.stop();
       setIsListening(false);
     } else {
-      if (!recognitionRef.current) {
-        console.error("Speech recognition not supported");
-        return;
-      }
-
-      // first interaction unlock
+      if (!recognitionRef.current) return;
       if (isFirstInteraction) {
         try {
           await ensureAudioUnlocked();
-        } catch (e) {
-          console.warn("Audio unlock attempt failed:", e);
-        } finally {
-          setIsMuted(false);
-          setIsFirstInteraction(false);
-        }
+        } catch (e) {}
+        setIsMuted(false);
+        setIsFirstInteraction(false);
       }
-
       try {
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
-        // start() may throw if called twice or if permissions denied
         console.error("recognition.start() error:", err);
         setIsListening(false);
       }
@@ -552,29 +503,18 @@ For exact current deadlines, please check the Admission Notice section.
   };
 
   const toggleMute = async () => {
-    // treat manual toggle as a user interaction (unlocks audio)
     if (isFirstInteraction) {
       try {
         await ensureAudioUnlocked();
-      } catch (e) {
-        console.warn("Audio unlock attempt failed:", e);
-      } finally {
-        setIsFirstInteraction(false);
-      }
+      } catch (e) {}
+      setIsFirstInteraction(false);
     }
-
-    setIsMuted((prev) => {
-      const next = !prev;
-      // if unmuting right away, very small chance voices not loaded; try to fetch
-      if (!next && window.speechSynthesis) {
-        window.speechSynthesis.getVoices();
-      }
-      return next;
-    });
+    setIsMuted((prev) => !prev);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <ToastContainer position="top-right" autoClose={5000} />
       <div ref={chatTopRef}></div>
       <Header
         showHistory={showHistory}

@@ -21,8 +21,6 @@ import {
     Zap,
     Bus
 } from "lucide-react";
-export const GEMINI_API_KEY = "AIzaSyAE1wNbllIfA6dUjadWzdoAs5StzXlUdPk";
-export const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export const languages = [
     { code: "en", name: "English", flag: "🇺🇸" },

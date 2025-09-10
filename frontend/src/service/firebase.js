@@ -1,10 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { getApp } from "firebase/app";
-
-console.log("🔥 Firebase project ID:", getApp().options.projectId);
-
 
 const firebaseConfig = {
     apiKey: "AIzaSyAk7EOUaBhAbPsF3t5oBItWprze6IZH_OY",

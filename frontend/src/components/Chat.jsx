@@ -7,8 +7,6 @@ const Chat = ({ messages, isTyping }) => {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  // Scroll to bottom when new messages arrive or typing starts/stops
-
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 h-[450px] lg:h-[500px] flex flex-col overflow-hidden">
