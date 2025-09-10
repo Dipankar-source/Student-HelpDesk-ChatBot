@@ -1,16 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  FaEnvelope, 
-  FaLock, 
-  FaRobot, 
-  FaSignInAlt, 
-  FaUserGraduate,
+import {
+  FaEnvelope,
+  FaLock,
+  FaSignInAlt,
   FaGoogle,
-  FaMicrosoft
+  FaMicrosoft,
 } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+// Firebase imports
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+} from "firebase/auth";
+
+// Your Firebase config (replace with your actual config)
+const firebaseConfig = {
+  apiKey: "AIzaSyBcfvTUQBSoejQmroVKYi81mHer3VwZwJg",
+  authDomain: "fir-fa8a5.firebaseapp.com",
+  projectId: "fir-fa8a5",
+  storageBucket: "fir-fa8a5.firebasestorage.app",
+  messagingSenderId: "1059121428628",
+  appId: "1:1059121428628:web:192c467a15c2719b029c81",
+  measurementId: "G-794WEV9EF6",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -21,6 +45,18 @@ const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        navigate("/");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,12 +64,11 @@ const LoginPage = () => {
       ...prev,
       [name]: value,
     }));
-    
-    // Clear error when user types
+
     if (errors[name]) {
       setErrors({
         ...errors,
-        [name]: ''
+        [name]: "",
       });
     }
   };
@@ -42,34 +77,57 @@ const LoginPage = () => {
     const newErrors = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleEmailPasswordLogin = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      navigate('/')
-      console.log(formData);
+
+    try {
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+      setErrors({
+        general:
+          error.message || "Failed to sign in. Please check your credentials.",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsSubmitting(true);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      console.log("Google login successful:", user);
+      navigate("/");
+    } catch (error) {
+      console.error("Google login error:", error);
+      setErrors({
+        general: error.message || "Failed to sign in with Google.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputAnimation = {
@@ -97,7 +155,11 @@ const LoginPage = () => {
               className="flex items-center justify-center"
             >
               <div className="bg-white rounded-full">
-                <img className="w-12 h-12 object-cover" src="./help.png" alt="" />
+                <img
+                  className="w-12 h-12 object-cover"
+                  src="./help.png"
+                  alt=""
+                />
               </div>
               <h1 className="ml-4 text-2xl font-bold text-white">
                 Student Help Desk AI
@@ -107,7 +169,17 @@ const LoginPage = () => {
 
           {/* Login Form */}
           <div className="p-6">
-            {/* Description */}
+            {/* Error message */}
+            {errors.general && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm"
+              >
+                {errors.general}
+              </motion.div>
+            )}
+
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -118,8 +190,8 @@ const LoginPage = () => {
               academic assistance.
             </motion.p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
+            <form onSubmit={handleEmailPasswordLogin} className="space-y-4">
+              {/* Email Field */}
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -141,7 +213,9 @@ const LoginPage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`block w-full pl-9 pr-3 py-2 text-sm border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`block w-full pl-9 pr-3 py-2 text-sm border ${
+                      errors.email ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="john.doe@university.edu"
                   />
                 </div>
@@ -150,7 +224,7 @@ const LoginPage = () => {
                 )}
               </motion.div>
 
-              {/* Password */}
+              {/* Password Field */}
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -172,7 +246,9 @@ const LoginPage = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`block w-full pl-9 pr-10 py-2 text-sm border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`block w-full pl-9 pr-10 py-2 text-sm border ${
+                      errors.password ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="••••••••"
                   />
                   <div
@@ -207,10 +283,7 @@ const LoginPage = () => {
                     onChange={() => setRememberMe(!rememberMe)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-2 text-gray-700"
-                  >
+                  <label htmlFor="remember-me" className="ml-2 text-gray-700">
                     Remember me
                   </label>
                 </div>
@@ -229,13 +302,31 @@ const LoginPage = () => {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-4 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-4 ${
+                  isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                }`}
               >
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Signing in...
                   </>
@@ -269,7 +360,11 @@ const LoginPage = () => {
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div>
                   <button
-                    className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={handleGoogleLogin}
+                    disabled={isSubmitting}
+                    className={`w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors ${
+                      isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
                   >
                     <FaGoogle className="h-4 w-4 text-red-600 mr-2" />
                     <span className="text-xs">Google</span>
@@ -277,9 +372,7 @@ const LoginPage = () => {
                 </div>
 
                 <div>
-                  <button
-                    className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
+                  <button className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                     <FaMicrosoft className="h-4 w-4 text-blue-600 mr-2" />
                     <span className="text-xs">Microsoft</span>
                   </button>
