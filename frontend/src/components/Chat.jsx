@@ -33,7 +33,7 @@ const Chat = ({ messages, isTyping, onDownload }) => {
           title="Download conversation as PDF"
         >
           <FileText className="w-4 h-4" />
-          <span>Export PDF</span>
+          <span>Export</span>
         </button>
       </div>
 
