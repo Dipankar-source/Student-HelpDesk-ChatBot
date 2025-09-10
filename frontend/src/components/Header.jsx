@@ -95,18 +95,6 @@ const Header = ({
               )}
             </button>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg bg-slate-100 text-slate-600"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Settings className="w-5 h-5" />
-            )}
-          </button>
         </div>
       </div>
 

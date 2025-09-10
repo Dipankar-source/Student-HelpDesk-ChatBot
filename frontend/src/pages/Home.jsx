@@ -1,4 +1,3 @@
-// Home.jsx
 import { useState, useRef, useEffect } from "react";
 import {
   collection,
@@ -28,11 +27,13 @@ import QuickMessages from "../components/QuickMessages";
 import Footer from "../components/Footer";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { jsPDF } from "jspdf";
+import { format } from "date-fns";
+import html2canvas from "html2canvas";
 
 // DeepSeek API configuration
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-const DEEPSEEK_API_KEY =
-  "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"; // Replace with a valid key
+const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY; // Replace with a valid key
 
 const Home = () => {
   const [messages, setMessages] = useState([
@@ -66,6 +67,9 @@ const Home = () => {
   const isFirstInteractionRef = useRef(isFirstInteraction);
   const chatTopRef = useRef(null);
   const [apiError, setApiError] = useState(null);
+
+  const UNIVERSITY_LOGO = "./university-logo.png";
+  const UNIVERSITY_BUILDING = "./university-building.png";
 
   useEffect(() => {
     isFirstInteractionRef.current = isFirstInteraction;
@@ -406,6 +410,241 @@ const Home = () => {
     }
   };
 
+  const generatePDF = async () => {
+    try {
+      // Create a hidden div with the conversation content
+      const printDiv = document.createElement("div");
+      printDiv.style.position = "absolute";
+      printDiv.style.left = "-9999px";
+      printDiv.style.width = "210mm"; // A4 width
+      printDiv.style.padding = "20px";
+      printDiv.style.fontSize = "14px";
+      printDiv.style.fontFamily = "Arial, sans-serif";
+      printDiv.style.backgroundColor = "#f9fafb";
+
+      // Add university header with logo
+      printDiv.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #2563eb; position: relative;">
+        <div style="position: absolute; left: 0; top: 0; opacity: 1;">
+          <img src="${UNIVERSITY_LOGO}" style="height: 60px;">
+        </div>
+        <h1 style="color: #2563eb; margin: 0 50px;">BRAINWARE UNIVERSITY</h1>
+        <h2 style="color: #4b5563; margin: 5px 0 10px 0;">AI Assistant Conversation Transcript</h2>
+        <p style="color: #6b7280; margin: 0;">Date: ${format(
+          new Date(),
+          "PPPP"
+        )}</p>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #374151; margin-bottom: 10px; background: linear-gradient(90deg, #2563eb, #1e40af); color: white; padding: 8px 12px; border-radius: 4px;">CONVERSATION TRANSCRIPT</h3>
+        <p style="color: #6b7280; margin: 0;">Participants: You & EduBot Assistant • ${format(
+          new Date(),
+          "PPpp"
+        )}</p>
+      </div>
+    `;
+
+      // Add messages with proper formatting and highlighting
+      const messagesHTML = messages
+        .map((message, index) => {
+          const isUser = message.sender === "user";
+          const timestamp = message.timestamp?.toDate
+            ? format(message.timestamp.toDate(), "p")
+            : format(new Date(message.timestamp), "p");
+
+          // Process text for highlighting and markdown
+          let processedText = message.text
+            // Handle bold text
+            .replace(
+              /\*\*(.*?)\*\*/g,
+              '<strong style="color: #1e40af;">$1</strong>'
+            )
+            // Handle italic text
+            .replace(/\*(.*?)\*/g, '<em style="color: #4338ca;">$1</em>')
+            // Handle code blocks
+            .replace(
+              /`(.*?)`/g,
+              '<code style="background: #e5e7eb; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>'
+            )
+            // Handle links
+            .replace(
+              /\[(.*?)\]\((.*?)\)/g,
+              '<a href="$2" style="color: #2563eb; text-decoration: underline;">$1</a>'
+            )
+            // Handle bullet points
+            .replace(
+              /^- (.*?)(?=\n|$)/g,
+              '<li style="margin-bottom: 5px;">$1</li>'
+            )
+            // Handle numbered lists
+            .replace(
+              /^\d+\. (.*?)(?=\n|$)/g,
+              '<li style="margin-bottom: 5px;">$1</li>'
+            )
+            // Convert line breaks
+            .replace(/\n/g, "<br>");
+
+          // Wrap list items in appropriate tags
+          if (processedText.includes("<li")) {
+            if (message.text.match(/^\d+\./)) {
+              processedText = `<ol style="padding-left: 20px; margin: 10px 0;">${processedText}</ol>`;
+            } else {
+              processedText = `<ul style="padding-left: 20px; margin: 10px 0;">${processedText}</ul>`;
+            }
+          }
+
+          return `
+          <div style="margin-bottom: 20px; display: flex; justify-content: ${
+            isUser ? "flex-end" : "flex-start"
+          };">
+            <div style="max-width: 70%; background: ${
+              isUser
+                ? "linear-gradient(135deg, #dbeafe, #bfdbfe)"
+                : "linear-gradient(135deg, #f0f9ff, #e0f2fe)"
+            }; 
+                        border: ${
+                          isUser ? "1px solid #93c5fd" : "1px solid #7dd3fc"
+                        }; 
+                        border-radius: 12px; padding: 12px 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="font-weight: bold; color: ${
+                isUser ? "#1e40af" : "#0c4a6e"
+              }; margin-bottom: 5px; display: flex; align-items: center;">
+                ${
+                  isUser
+                    ? '<svg style="width: 16px; height: 16px; margin-right: 5px;" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>'
+                    : '<svg style="width: 16px; height: 16px; margin-right: 5px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>'
+                }
+                ${isUser ? "You" : "EduBot Assistant"}
+              </div>
+              <div style="color: ${
+                isUser ? "#1e3a8a" : "#0c4a6e"
+              }; line-height: 1.5; font-size: 13px;">
+                ${processedText}
+              </div>
+              <div style="font-size: 11px; color: ${
+                isUser ? "#64748b" : "#0ea5e9"
+              }; margin-top: 8px; display: flex; align-items: center;">
+                <svg style="width: 12px; height: 12px; margin-right: 4px;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                </svg>
+                ${timestamp}
+              </div>
+            </div>
+          </div>
+        `;
+        })
+        .join("");
+
+      printDiv.innerHTML += messagesHTML;
+
+      // Add watermark to the entire content
+      printDiv.innerHTML += `
+      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.5; z-index: -1;">
+        <img src="${UNIVERSITY_BUILDING}" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+    `;
+
+      document.body.appendChild(printDiv);
+
+      // Create PDF with proper page breaks
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20; // Margin in mm
+      const contentWidth = pageWidth - margin * 2;
+
+      // Convert the HTML content to canvas
+      const canvas = await html2canvas(printDiv, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#f9fafb",
+        width: printDiv.offsetWidth,
+        height: printDiv.offsetHeight,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgProps = doc.getImageProperties(imgData);
+      const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+      let position = 0;
+      let currentPage = 1;
+      const totalPages = Math.ceil(imgHeight / pageHeight);
+
+      // Add content to PDF with proper page breaks
+      while (position < imgHeight) {
+        if (currentPage > 1) {
+          doc.addPage();
+        }
+
+        // Calculate the portion of the image to show on this page
+        const srcY = position * (canvas.height / imgHeight);
+        const srcHeight = Math.min(
+          pageHeight * (canvas.height / imgHeight),
+          canvas.height - srcY
+        );
+
+        // Add the image segment for this page
+        doc.addImage(
+          imgData,
+          "PNG",
+          margin,
+          -position + margin,
+          contentWidth,
+          imgHeight
+        );
+
+        // Add page number
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(
+          `Page ${currentPage} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          {
+            align: "center",
+          }
+        );
+
+        position += pageHeight;
+        currentPage++;
+      }
+
+      // Clean up
+      document.body.removeChild(printDiv);
+
+      // Save the PDF
+      const timestamp = format(new Date(), "yyyy-MM-dd-HH-mm");
+      doc.save(`Brainware-Conversation-${timestamp}.pdf`);
+
+      toast.success("PDF downloaded successfully!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF");
+    }
+  };
+
+  // Helper function to convert image URL to base64
+  const getBase64ImageFromURL = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL("image/png");
+        resolve(dataURL);
+      };
+      img.onerror = (error) => {
+        reject(error);
+      };
+      img.src = url;
+    });
+  };
+
   const handleSendMessage = async (messageText = inputMessage) => {
     if (!messageText.trim()) return;
 
@@ -450,7 +689,20 @@ const Home = () => {
 
     chatTopRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    const botResponse = await callDeepSeekAPI(messageText, selectedLanguage);
+    // Check if this is a predefined quick message
+    const predefinedAnswer = quickMessages.find(
+      (msg) => msg.text === messageText
+    )?.answer;
+
+    let botResponse;
+    if (predefinedAnswer) {
+      // Use the predefined answer
+      botResponse = predefinedAnswer;
+      setIsTyping(false);
+    } else {
+      // Call the DeepSeek API for other messages
+      botResponse = await callDeepSeekAPI(messageText, selectedLanguage);
+    }
 
     const aiMessage = {
       text: botResponse,
@@ -556,7 +808,11 @@ const Home = () => {
           )}
 
           <div className="lg:col-span-2 col-span-1">
-            <Chat messages={messages} isTyping={isTyping} />
+            <Chat
+              messages={messages}
+              isTyping={isTyping}
+              onDownload={generatePDF}
+            />
             <InputArea
               inputMessage={inputMessage}
               setInputMessage={setInputMessage}
