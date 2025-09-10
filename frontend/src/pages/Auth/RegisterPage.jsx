@@ -56,7 +56,7 @@ const RegisterPage = () => {
     "Business",
     "Medicine",
     "Law",
-    "Education",
+    "Brainucation",
   ];
 
   const departments = [

@@ -10,7 +10,7 @@ const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) =
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">
-            Welcome to EduBot
+            Welcome to BrainuBot
           </h2>
           <p className="text-slate-600">
             Your 24/7 AI-powered student assistant
@@ -69,7 +69,7 @@ const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) =
           </div>
           <div className="flex items-center space-x-3 text-slate-600">
             <Mail className="w-5 h-5 text-blue-600" />
-            <span>help@university.edu</span>
+            <span>help@university.Brainu</span>
           </div>
           <div className="flex items-center space-x-3 text-slate-600">
             <Clock className="w-5 h-5 text-blue-600" />

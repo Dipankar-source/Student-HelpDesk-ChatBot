@@ -63,7 +63,7 @@ export const quickMessages = [
     {
         id: 2,
         text: "How can I apply online?",
-        answer: "You can apply through the official portal: [Brainware University Admissions](https://www.brainwareuniversity.ac.in/admissions). Steps: **1. Fill the online application form with personal and academic details. 2. Upload required documents (marksheets, certificates, ID proof). 3. Pay the application fee using net banking, UPI, or card payment. 4. Download confirmation receipt for your records.** For some programs, an interview or assessment may be scheduled after application submission.",
+        answer: "You can apply through the official portal: [Brainware University Admissions](https://www.brainwareuniversity.ac.in/admissions). Steps: **1. Fill the online application form with personal and academic details. 2. Upload required documents (marksheets, certificates, ID proof). 3. Pay the application fee using net banking, UPI, or card payment. 4. Download confirmation receipt for your records.** For some programs, an interview or assessment may be schBrainuled after application submission.",
         category: "admissions",
         icon: GraduationCap,
         color: "bg-blue-500",

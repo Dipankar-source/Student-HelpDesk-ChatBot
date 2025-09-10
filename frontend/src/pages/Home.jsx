@@ -329,7 +329,7 @@ const Home = () => {
           messages: [
             {
               role: "system",
-              content: `You are EduBot, the official student assistant for Brainware University.  
+              content: `You are BrainuBot, the official student assistant for Brainware University.  
               Your style must always be:
               - 🎯 Give the direct answer first.
               - 🔍 Search the web for the most current info when needed.
@@ -464,7 +464,7 @@ const Home = () => {
       </div>
       <div style="margin-bottom: 20px;">
         <h3 style="color: #374151; margin-bottom: 10px; background: linear-gradient(90deg, #2563eb, #1e40af); color: white; padding: 8px 12px; border-radius: 4px;">CONVERSATION TRANSCRIPT</h3>
-        <p style="color: #6b7280; margin: 0;">Participants: You & EduBot Assistant • ${format(
+        <p style="color: #6b7280; margin: 0;">Participants: You & BrainuBot Assistant • ${format(
           new Date(),
           "PPpp"
         )}</p>
@@ -541,7 +541,7 @@ const Home = () => {
                     ? '<svg style="width: 16px; height: 16px; margin-right: 5px;" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>'
                     : '<svg style="width: 16px; height: 16px; margin-right: 5px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>'
                 }
-                ${isUser ? "You" : "EduBot Assistant"}
+                ${isUser ? "You" : "BrainuBot Assistant"}
               </div>
               <div style="color: ${
                 isUser ? "#1e3a8a" : "#0c4a6e"

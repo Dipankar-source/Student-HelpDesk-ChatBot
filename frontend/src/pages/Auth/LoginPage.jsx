@@ -228,7 +228,7 @@ const LoginPage = () => {
                     className={`block w-full pl-9 pr-3 py-2 text-sm border ${
                       errors.email ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
-                    placeholder="john.doe@university.edu"
+                    placeholder="john.doe@university.Brainu"
                   />
                 </div>
                 {errors.email && (

@@ -7,7 +7,7 @@ const Footer = () => {
         <div className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Bot className="w-6 h-6 text-blue-400" />
-            <span className="text-xl font-bold">EduBot</span>
+            <span className="text-xl font-bold">BrainuBot</span>
           </div>
           <p className="text-slate-400 text-sm mb-4">
             Powered by Google Gemini AI technology to help students succeed

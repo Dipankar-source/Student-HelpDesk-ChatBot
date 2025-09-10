@@ -18,7 +18,7 @@ const Chat = ({ messages, isTyping, onDownload }) => {
             <Bot className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-semibold">EduBot Assistant</h3>
+            <h3 className="font-semibold">BrainuBot Assistant</h3>
             <p className="text-blue-100 text-sm flex items-center">
               Online & Ready to Help
             </p>
