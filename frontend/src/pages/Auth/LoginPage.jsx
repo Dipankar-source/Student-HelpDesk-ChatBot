@@ -22,15 +22,15 @@ import {
 
 // Your Firebase config (replace with your actual config)
 const firebaseConfig = {
-  apiKey: "AIzaSyBcfvTUQBSoejQmroVKYi81mHer3VwZwJg",
-  authDomain: "fir-fa8a5.firebaseapp.com",
-  projectId: "fir-fa8a5",
-  storageBucket: "fir-fa8a5.firebasestorage.app",
-  messagingSenderId: "1059121428628",
-  appId: "1:1059121428628:web:192c467a15c2719b029c81",
-  measurementId: "G-794WEV9EF6",
+  apiKey: "AIzaSyAk7EOUaBhAbPsF3t5oBItWprze6IZH_OY",
+  authDomain: "to-do-707f2.firebaseapp.com",
+  databaseURL: "https://to-do-707f2-default-rtdb.firebaseio.com",
+  projectId: "to-do-707f2",
+  storageBucket: "to-do-707f2.firebasestorage.app",
+  messagingSenderId: "239382297060",
+  appId: "1:239382297060:web:a0d49a4aa9c8cff59a6ff1",
+  measurementId: "G-SL7F0W0WQN",
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -51,7 +51,7 @@ const LoginPage = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
 
@@ -101,7 +101,7 @@ const LoginPage = () => {
 
     try {
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
       setErrors({
@@ -119,7 +119,7 @@ const LoginPage = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       console.log("Google login successful:", user);
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Google login error:", error);
       setErrors({
