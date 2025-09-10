@@ -10,7 +10,8 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import { signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "../service/firebase";
 import {
   languages,
@@ -30,10 +31,11 @@ import "react-toastify/dist/ReactToastify.css";
 import { jsPDF } from "jspdf";
 import { format } from "date-fns";
 import html2canvas from "html2canvas";
+import { href } from "react-router-dom";
 
 // DeepSeek API configuration
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY; // Replace with a valid key
+const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY;
 
 const Home = () => {
   const [messages, setMessages] = useState([
@@ -45,6 +47,7 @@ const Home = () => {
       language: "en",
     },
   ]);
+  const navigate = useNavigate();
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
@@ -170,24 +173,19 @@ const Home = () => {
     }
   }, [selectedLanguage]);
 
-  // Auth & sessions
+  // In your Home.js component, update the useEffect for auth state change
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-        loadChatSessions(user.uid);
-        if (!currentSessionId) {
-          createNewSession(user.uid);
-        }
-      } else {
-        signInAnonymously(auth)
-          .then((userCredential) => {
-            setUserId(userCredential.user.uid);
-          })
-          .catch((error) => {
-            console.error("Anonymous sign-in failed:", error);
-            toast.error("Authentication error: " + error.message);
-          });
+      if (!user) {
+        // If no user is authenticated, redirect to login
+        navigate("/");
+        return;
+      }
+
+      setUserId(user.uid);
+      loadChatSessions(user.uid);
+      if (!currentSessionId) {
+        createNewSession(user.uid);
       }
     });
 
@@ -214,6 +212,29 @@ const Home = () => {
     return () => unsubscribe();
   }, [currentSessionId]);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // Clear any local state if needed
+      setUserId(null);
+      setCurrentSessionId(null);
+      setMessages([
+        {
+          id: 1,
+          text: "Hello! I'm your AI assistant. How can I help you today? 👋",
+          sender: "bot",
+          timestamp: new Date(),
+          language: "en",
+        },
+      ]);
+
+      toast.success("Logged out successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Error logging out");
+    }
+  };
   const loadChatSessions = (uid) => {
     try {
       const q = query(
@@ -250,13 +271,19 @@ const Home = () => {
 
   const createNewSession = async (uid) => {
     try {
-      const docRef = await addDoc(collection(db, "sessions"), {
-        userId: uid,
-        createdAt: new Date(),
-        lastActivity: new Date(),
-        title: "New Chat",
-      });
-      setCurrentSessionId(docRef.id);
+      // If using Firebase auth
+      if (!uid.startsWith("local-user-")) {
+        const docRef = await addDoc(collection(db, "sessions"), {
+          userId: uid,
+          createdAt: new Date(),
+          lastActivity: new Date(),
+          title: "New Chat",
+        });
+        setCurrentSessionId(docRef.id);
+      } else {
+        // If using local fallback
+        setCurrentSessionId(`local-${Date.now()}`);
+      }
     } catch (error) {
       console.error("Error creating new session:", error);
       toast.error("Error creating new session");
@@ -783,6 +810,7 @@ const Home = () => {
         categories={categories}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
+        onLogout={handleLogout}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

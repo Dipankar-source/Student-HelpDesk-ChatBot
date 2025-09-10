@@ -8,6 +8,7 @@ const Chat = ({ messages, isTyping, onDownload }) => {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
+ 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 h-[450px] lg:h-[500px] flex flex-col overflow-hidden">
       {/* Chat Header */}

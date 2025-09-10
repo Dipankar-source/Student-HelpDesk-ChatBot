@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, History, Settings, Menu, X, ChevronDown, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Bot, History, Settings, Menu, X, ChevronDown, Mic, MicOff, Volume2, VolumeX, LogOut } from "lucide-react";
 
 const Header = ({
   showHistory,
@@ -15,7 +15,8 @@ const Header = ({
   languages,
   categories,
   selectedCategory,
-  setSelectedCategory
+  setSelectedCategory,
+  onLogout // Add this prop for logout functionality
 }) => {
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50">
@@ -94,6 +95,15 @@ const Header = ({
                 <Volume2 className="w-5 h-5" />
               )}
             </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -156,6 +166,15 @@ const Header = ({
                 )}
               </button>
             </div>
+
+            {/* Mobile Logout Button */}
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center justify-center space-x-2 p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
 
             <div className="pt-2 border-t border-slate-200">
               <h3 className="text-sm font-medium text-slate-700 mb-2">

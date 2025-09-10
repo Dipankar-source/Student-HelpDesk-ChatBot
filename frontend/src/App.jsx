@@ -1,19 +1,24 @@
-import { Route, Routes } from "react-router-dom";
-import LoginPage from "./pages/Auth/LoginPage";
-import RegisterPage from "./pages/Auth/RegisterPage";
-import HomePage from "./pages/Home";
+import { Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/Auth/LoginPage';
+import RegisterPage from './pages/Auth/RegisterPage';
+import Home from './pages/Home';
 
-
-const App = () => {
+function App() {
   return (
-    <div>
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<HomePage />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
-    </div>
   );
-};
+}
 
 export default App;

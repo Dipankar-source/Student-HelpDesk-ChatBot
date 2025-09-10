@@ -31,6 +31,7 @@ const firebaseConfig = {
   appId: "1:239382297060:web:a0d49a4aa9c8cff59a6ff1",
   measurementId: "G-SL7F0W0WQN",
 };
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -45,14 +46,14 @@ const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const navigate = useNavigate();
 
-  // Check if user is already logged in
+  // Check if user is already logged in - but don't redirect immediately
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        navigate("/dashboard");
-      }
+      setIsCheckingAuth(false);
+      // Don't redirect here - let the user stay on login page if they want
     });
 
     return () => unsubscribe();
@@ -137,6 +138,17 @@ const LoginPage = () => {
     },
   };
 
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 py-8">
       <motion.div
