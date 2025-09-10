@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, History, Settings, Menu, X, ChevronDown, Mic, MicOff, Volume2, VolumeX, LogOut } from "lucide-react";
+import { Bot, History, Settings, Menu, X,  Mic, MicOff, Volume2, VolumeX, LogOut } from "lucide-react";
 
 const Header = ({
   showHistory,
@@ -63,7 +63,6 @@ const Header = ({
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
 
             <button
