@@ -38,7 +38,6 @@ const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
 
-  // Sample data for dropdowns
   const universities = [
     "Harvard University",
     "Stanford University",
@@ -86,7 +85,6 @@ const RegisterPage = () => {
       ...formData,
       [name]: value,
     });
-    // Clear error when user types
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -184,7 +182,6 @@ const RegisterPage = () => {
     navigate('/')
   };
 
-  // Progress steps
   const steps = [
     { number: 1, title: "Personal Info" },
     { number: 2, title: "Academic Info" },
@@ -200,7 +197,6 @@ const RegisterPage = () => {
         className="w-full max-w-4xl"
       >
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header with gradient */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
             <motion.div
               initial={{ y: -20, opacity: 0 }}
@@ -214,7 +210,6 @@ const RegisterPage = () => {
             </motion.div>
           </div>
 
-          {/* Progress Bar */}
           <div className="px-6 pt-6 items-center w-full justify-around">
             <div className="flex justify-between items-center mb-6">
               {steps.map((step, index) => (
@@ -252,7 +247,6 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          {/* Registration Form */}
           <div className="p-6">
             {apiError && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
@@ -261,7 +255,6 @@ const RegisterPage = () => {
             )}
 
             <form onSubmit={handleSubmit}>
-              {/* Step 1: Personal Information */}
               {currentStep === 1 && (
                 <motion.div
                   initial={{ x: -20, opacity: 0 }}
@@ -270,7 +263,6 @@ const RegisterPage = () => {
                   className="space-y-4"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Full Name */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Full Name *
@@ -299,7 +291,6 @@ const RegisterPage = () => {
                       )}
                     </div>
 
-                    {/* Student ID */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Student ID *
@@ -330,7 +321,6 @@ const RegisterPage = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Email */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Email *
@@ -357,7 +347,6 @@ const RegisterPage = () => {
                       )}
                     </div>
 
-                    {/* Phone Number */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Phone Number *
@@ -385,7 +374,6 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-                  {/* Date of Birth */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
@@ -412,7 +400,6 @@ const RegisterPage = () => {
                       )}
                     </div>
 
-                    {/* Address */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Address
@@ -445,7 +432,6 @@ const RegisterPage = () => {
                 </motion.div>
               )}
 
-              {/* Step 2: Academic Information */}
               {currentStep === 2 && (
                 <motion.div
                   initial={{ x: -20, opacity: 0 }}
@@ -454,7 +440,6 @@ const RegisterPage = () => {
                   className="space-y-4"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* University */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         University *
@@ -488,7 +473,6 @@ const RegisterPage = () => {
                       )}
                     </div>
 
-                    {/* Faculty */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Faculty *
@@ -524,7 +508,6 @@ const RegisterPage = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Department */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Department *
@@ -558,7 +541,6 @@ const RegisterPage = () => {
                       )}
                     </div>
 
-                    {/* Program */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Program *
@@ -593,7 +575,6 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-                  {/* Semester */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
@@ -648,7 +629,6 @@ const RegisterPage = () => {
                 </motion.div>
               )}
 
-              {/* Step 3: Account Security */}
               {currentStep === 3 && (
                 <motion.div
                   initial={{ x: -20, opacity: 0 }}
@@ -690,7 +670,6 @@ const RegisterPage = () => {
                       </p>
                     </div>
 
-                    {/* Confirm Password */}
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Confirm Password *
@@ -746,7 +725,6 @@ const RegisterPage = () => {
               )}
             </form>
 
-            {/* Already have an account */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

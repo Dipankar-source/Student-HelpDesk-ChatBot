@@ -10,7 +10,6 @@ const QuickMessages = ({ filteredQuickMessages, handleQuickMessage }) => {
             key={msg.id}
             onClick={() => {
               handleQuickMessage(msg.text);
-              // Scroll to top after sending the message
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex items-center space-x-3 p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 group"

@@ -33,8 +33,6 @@ import { format } from "date-fns";
 import html2canvas from "html2canvas";
 import { href } from "react-router-dom";
 
-// DeepSeek API configuration
-// Gemini API configuration
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -91,7 +89,6 @@ const Home = () => {
             msg.text.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
-  // Load voices
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
 
@@ -111,8 +108,6 @@ const Home = () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
   }, []);
-
-  // Initialize SpeechRecognition
   useEffect(() => {
     if (
       !("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
@@ -175,11 +170,9 @@ const Home = () => {
     }
   }, [selectedLanguage]);
 
-  // In your Home.js component, update the useEffect for auth state change
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        // If no user is authenticated, redirect to login
         navigate("/");
         return;
       }
@@ -217,7 +210,6 @@ const Home = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      // Clear any local state if needed
       setUserId(null);
       setCurrentSessionId(null);
       setMessages([
@@ -273,7 +265,6 @@ const Home = () => {
 
   const createNewSession = async (uid) => {
     try {
-      // If using Firebase auth
       if (!uid.startsWith("local-user-")) {
         const docRef = await addDoc(collection(db, "sessions"), {
           userId: uid,
@@ -283,7 +274,6 @@ const Home = () => {
         });
         setCurrentSessionId(docRef.id);
       } else {
-        // If using local fallback
         setCurrentSessionId(`local-${Date.now()}`);
       }
     } catch (error) {
@@ -437,17 +427,15 @@ const Home = () => {
 
   const generatePDF = async () => {
     try {
-      // Create a hidden div with the conversation content
       const printDiv = document.createElement("div");
       printDiv.style.position = "absolute";
       printDiv.style.left = "-9999px";
-      printDiv.style.width = "210mm"; // A4 width
+      printDiv.style.width = "210mm"; 
       printDiv.style.padding = "20px";
       printDiv.style.fontSize = "14px";
       printDiv.style.fontFamily = "Arial, sans-serif";
       printDiv.style.backgroundColor = "#f9fafb";
 
-      // Add university header with logo
       printDiv.innerHTML = `
       <div style="text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #2563eb; position: relative;">
         <div style="position: absolute; left: 0; top: 0; opacity: 1;">
@@ -469,47 +457,36 @@ const Home = () => {
       </div>
     `;
 
-      // Add messages with proper formatting and highlighting
       const messagesHTML = messages
         .map((message, index) => {
           const isUser = message.sender === "user";
           const timestamp = message.timestamp?.toDate
             ? format(message.timestamp.toDate(), "p")
             : format(new Date(message.timestamp), "p");
-
-          // Process text for highlighting and markdown
           let processedText = message.text
-            // Handle bold text
             .replace(
               /\*\*(.*?)\*\*/g,
               '<strong style="color: #1e40af;">$1</strong>'
             )
-            // Handle italic text
             .replace(/\*(.*?)\*/g, '<em style="color: #4338ca;">$1</em>')
-            // Handle code blocks
             .replace(
               /`(.*?)`/g,
               '<code style="background: #e5e7eb; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>'
             )
-            // Handle links
             .replace(
               /\[(.*?)\]\((.*?)\)/g,
               '<a href="$2" style="color: #2563eb; text-decoration: underline;">$1</a>'
             )
-            // Handle bullet points
             .replace(
               /^- (.*?)(?=\n|$)/g,
               '<li style="margin-bottom: 5px;">$1</li>'
             )
-            // Handle numbered lists
             .replace(
               /^\d+\. (.*?)(?=\n|$)/g,
               '<li style="margin-bottom: 5px;">$1</li>'
             )
-            // Convert line breaks
             .replace(/\n/g, "<br>");
 
-          // Wrap list items in appropriate tags
           if (processedText.includes("<li")) {
             if (message.text.match(/^\d+\./)) {
               processedText = `<ol style="padding-left: 20px; margin: 10px 0;">${processedText}</ol>`;
@@ -562,7 +539,6 @@ const Home = () => {
 
       printDiv.innerHTML += messagesHTML;
 
-      // Add watermark to the entire content
       printDiv.innerHTML += `
       <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.5; z-index: -1;">
         <img src="${UNIVERSITY_BUILDING}" style="width: 100%; height: 100%; object-fit: contain;">
@@ -571,14 +547,12 @@ const Home = () => {
 
       document.body.appendChild(printDiv);
 
-      // Create PDF with proper page breaks
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20; // Margin in mm
+      const margin = 20;
       const contentWidth = pageWidth - margin * 2;
 
-      // Convert the HTML content to canvas
       const canvas = await html2canvas(printDiv, {
         scale: 2,
         useCORS: true,
@@ -596,20 +570,17 @@ const Home = () => {
       let currentPage = 1;
       const totalPages = Math.ceil(imgHeight / pageHeight);
 
-      // Add content to PDF with proper page breaks
       while (position < imgHeight) {
         if (currentPage > 1) {
           doc.addPage();
         }
 
-        // Calculate the portion of the image to show on this page
         const srcY = position * (canvas.height / imgHeight);
         const srcHeight = Math.min(
           pageHeight * (canvas.height / imgHeight),
           canvas.height - srcY
         );
 
-        // Add the image segment for this page
         doc.addImage(
           imgData,
           "PNG",
@@ -619,7 +590,6 @@ const Home = () => {
           imgHeight
         );
 
-        // Add page number
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
         doc.text(
@@ -635,10 +605,8 @@ const Home = () => {
         currentPage++;
       }
 
-      // Clean up
       document.body.removeChild(printDiv);
 
-      // Save the PDF
       const timestamp = format(new Date(), "yyyy-MM-dd-HH-mm");
       doc.save(`Brainware-Conversation-${timestamp}.pdf`);
 
@@ -649,7 +617,6 @@ const Home = () => {
     }
   };
 
-  // Helper function to convert image URL to base64
   const getBase64ImageFromURL = (url) => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -714,18 +681,15 @@ const Home = () => {
 
     chatTopRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    // Check if this is a predefined quick message
     const predefinedAnswer = quickMessages.find(
       (msg) => msg.text === messageText
     )?.answer;
 
     let botResponse;
     if (predefinedAnswer) {
-      // Use the predefined answer
       botResponse = predefinedAnswer;
       setIsTyping(false);
     } else {
-      // Call the DeepSeek API for other messages
       botResponse = await callGeminiAPI(messageText, selectedLanguage);
     }
 

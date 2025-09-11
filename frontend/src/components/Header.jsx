@@ -16,7 +16,7 @@ const Header = ({
   categories,
   selectedCategory,
   setSelectedCategory,
-  onLogout // Add this prop for logout functionality
+  onLogout 
 }) => {
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50">

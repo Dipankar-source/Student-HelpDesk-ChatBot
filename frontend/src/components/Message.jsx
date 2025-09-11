@@ -107,7 +107,6 @@ const Message = ({ message }) => {
               <ReactMarkdown
                 components={{
                   code: ({ node, inline, className, children, ...props }) => {
-                    // Add index for tracking copied state
                     const index = Math.random().toString(36).substring(7);
                     return (
                       <CodeBlock 

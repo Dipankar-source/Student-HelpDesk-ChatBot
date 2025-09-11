@@ -10,7 +10,6 @@ import {
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { Link, useNavigate } from "react-router-dom";
 
-// Firebase imports
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -20,7 +19,6 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 
-// Your Firebase config (replace with your actual config)
 const firebaseConfig = {
   apiKey: "AIzaSyAk7EOUaBhAbPsF3t5oBItWprze6IZH_OY",
   authDomain: "to-do-707f2.firebaseapp.com",
@@ -32,7 +30,6 @@ const firebaseConfig = {
   measurementId: "G-SL7F0W0WQN",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
@@ -49,11 +46,9 @@ const LoginPage = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const navigate = useNavigate();
 
-  // Check if user is already logged in - but don't redirect immediately
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsCheckingAuth(false);
-      // Don't redirect here - let the user stay on login page if they want
     });
 
     return () => unsubscribe();
@@ -138,7 +133,6 @@ const LoginPage = () => {
     },
   };
 
-  // Show loading state while checking authentication
   if (isCheckingAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -158,7 +152,6 @@ const LoginPage = () => {
         className="w-full max-w-md"
       >
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header with gradient */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
             <motion.div
               initial={{ y: -20, opacity: 0 }}
@@ -179,9 +172,7 @@ const LoginPage = () => {
             </motion.div>
           </div>
 
-          {/* Login Form */}
           <div className="p-6">
-            {/* Error message */}
             {errors.general && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -203,7 +194,6 @@ const LoginPage = () => {
             </motion.p>
 
             <form onSubmit={handleEmailPasswordLogin} className="space-y-4">
-              {/* Email Field */}
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -236,7 +226,6 @@ const LoginPage = () => {
                 )}
               </motion.div>
 
-              {/* Password Field */}
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -279,7 +268,6 @@ const LoginPage = () => {
                 )}
               </motion.div>
 
-              {/* Remember Me & Forgot Password */}
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -308,7 +296,6 @@ const LoginPage = () => {
                 </Link>
               </motion.div>
 
-              {/* Submit Button */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -351,7 +338,6 @@ const LoginPage = () => {
               </motion.button>
             </form>
 
-            {/* Social Login Options */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -392,7 +378,6 @@ const LoginPage = () => {
               </div>
             </motion.div>
 
-            {/* Register Link */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
