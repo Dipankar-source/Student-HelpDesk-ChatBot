@@ -34,8 +34,10 @@ import html2canvas from "html2canvas";
 import { href } from "react-router-dom";
 
 // DeepSeek API configuration
-const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY;
+// Gemini API configuration
+const GEMINI_API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const Home = () => {
   const [messages, setMessages] = useState([
@@ -313,40 +315,40 @@ const Home = () => {
     return translations[targetLang] || text;
   };
 
-  const callDeepSeekAPI = async (userMessage, language) => {
+  const callGeminiAPI = async (userMessage, language) => {
     setIsTyping(true);
-    setApiError(null); // Reset any previous errors
+    setApiError(null);
 
     try {
-      const response = await fetch(DEEPSEEK_API_URL, {
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "deepseek-chat",
-          messages: [
+          contents: [
             {
-              role: "system",
-              content: `You are BrainuBot, the official student assistant for Brainware University.  
-              Your style must always be:
-              - 🎯 Give the direct answer first.
-              - 🔍 Search the web for the most current info when needed.
-              - 📌 If exact date/info is unknown, provide the most likely details.
-              - 📝 Format clearly with bullets, numbered steps, or short paragraphs.
-              - ✅ Keep tone professional.
-              - 🌐 Provide links at the end only.
-              - Use markdown formatting.`,
-            },
-            {
-              role: "user",
-              content: userMessage,
+              parts: [
+                {
+                  text: `You are BrainuBot, the official student assistant for Brainware University.  
+                Your style must always be:
+                - 🎯 Give the direct answer first.
+                - 🔍 Search the web for the most current info when needed.
+                - 📌 If exact date/info is unknown, provide the most likely details.
+                - 📝 Format clearly with bullets, numbered steps, or short paragraphs.
+                - ✅ Keep tone professional.
+                - 🌐 Provide links at the end only.
+                - Use markdown formatting.
+                
+                User question: ${userMessage}`,
+                },
+              ],
             },
           ],
-          temperature: 0.5,
-          max_tokens: 1024,
-          web_search: true,
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 1024,
+          },
         }),
       });
 
@@ -358,35 +360,31 @@ const Home = () => {
         setApiError(errorMsg);
         toast.error(`AI service error: ${errorMsg}`);
 
-        // Check if it's an authentication error specifically
         if (response.status === 401) {
           throw new Error(
             `Authentication failed. Please check your API key. Details: ${errorMsg}`
           );
         } else {
-          throw new Error(
-            `DeepSeek API error: ${response.status} - ${errorMsg}`
-          );
+          throw new Error(`Gemini API error: ${response.status} - ${errorMsg}`);
         }
       }
 
       const data = await response.json();
 
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        let deepseekResponse = data.choices[0].message.content.trim();
+      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+        let geminiResponse = data.candidates[0].content.parts[0].text.trim();
         if (language !== "en") {
-          deepseekResponse = await translateText(deepseekResponse, language);
+          geminiResponse = await translateText(geminiResponse, language);
         }
         setIsTyping(false);
-        return deepseekResponse;
+        return geminiResponse;
       } else {
-        throw new Error("Invalid response format from DeepSeek API");
+        throw new Error("Invalid response format from Gemini API");
       }
     } catch (error) {
-      console.error("Error calling DeepSeek API:", error);
+      console.error("Error calling Gemini API:", error);
       setIsTyping(false);
 
-      // Provide a helpful fallback response
       return (
         "I'm currently unable to access the AI service. " +
         "This might be due to an invalid API key or service outage. " +
@@ -728,7 +726,7 @@ const Home = () => {
       setIsTyping(false);
     } else {
       // Call the DeepSeek API for other messages
-      botResponse = await callDeepSeekAPI(messageText, selectedLanguage);
+      botResponse = await callGeminiAPI(messageText, selectedLanguage);
     }
 
     const aiMessage = {
