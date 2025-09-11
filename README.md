@@ -86,3 +86,56 @@ BrainuBot integrates with Gemini's chat completion API to provide intelligent re
 ## Adding Quick Messages
 Edit the `quickMessages` array in `src/assets/constants.js`:
 
+# 📂 Project File Structure
+
+```plaintext
+brainubot/
+├── .env
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── README.md
+├── render.yaml
+├── static.json
+├── vite.config.js
+│
+├── public/
+│   ├── help.png
+│   ├── university-building.png
+│   ├── university-logo.png
+│   └── vite.svg
+│
+├── src/
+│   ├── App.jsx
+│   ├── index.css
+│   ├── main.jsx
+│   │
+│   ├── assets/
+│   │   ├── constants.js
+│   │   └── react.svg
+│   │
+│   ├── components/
+│   │   ├── Chat.jsx
+│   │   ├── ChatHistory.jsx
+│   │   ├── Footer.jsx
+│   │   ├── Header.jsx
+│   │   ├── InputArea.jsx
+│   │   ├── Message.jsx
+│   │   ├── ProtectedRoute.jsx
+│   │   ├── QuickMessages.jsx
+│   │   ├── Sidebar.jsx
+│   │   └── TypingIndicator.jsx
+│   │
+│   ├── pages/
+│   │   ├── Auth/
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   ├── Extra.jsx
+│   │   │   └── Home.jsx
+│   │   │
+│   │   └── service/
+│   │       └── firebase.js
+
+
