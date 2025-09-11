@@ -92,7 +92,7 @@ const Message = ({ message }) => {
           {message.sender === "user" ? (
             <User className="w-4 h-4" />
           ) : (
-            <Bot className="w-4 h-4" />
+            <img className="h-full w-full object-cover" src="./help.png" alt="bot" />
           )}
         </div>
         <div
