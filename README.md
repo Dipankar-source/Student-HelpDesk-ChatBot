@@ -89,7 +89,7 @@ Edit the `quickMessages` array in `src/assets/constants.js`:
 # 📂 Project File Structure
 
 ```plaintext
-brainubot/
+frontend/
 ├── .env
 ├── .gitignore
 ├── eslint.config.js
