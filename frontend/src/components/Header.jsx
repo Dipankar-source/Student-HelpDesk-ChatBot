@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { Bot, History, Settings, Menu, X,  Mic, MicOff, Volume2, VolumeX, LogOut } from "lucide-react";
+import {
+  Bot,
+  History,
+  Settings,
+  Menu,
+  X,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  LogOut,
+  User2,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Header = ({
   showHistory,
@@ -16,7 +29,8 @@ const Header = ({
   categories,
   selectedCategory,
   setSelectedCategory,
-  onLogout 
+  onLogout,
+  navigate = useNavigate()
 }) => {
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50">
@@ -29,7 +43,11 @@ const Header = ({
             >
               <Menu className="w-5 h-5" />
             </button>
-            <img className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-blue-700 object-cover " src="./help.png" alt="logo" />
+            <img
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-blue-700 object-cover "
+              src="./help.png"
+              alt="logo"
+            />
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 BrainuBot
@@ -74,9 +92,9 @@ const Header = ({
               }`}
             >
               {isListening ? (
-                <MicOff className="w-5 h-5" />
-              ) : (
                 <Mic className="w-5 h-5" />
+              ) : (
+                <MicOff className="w-5 h-5" />
               )}
             </button>
 
@@ -93,6 +111,13 @@ const Header = ({
               ) : (
                 <Volume2 className="w-5 h-5" />
               )}
+            </button>
+            <button
+              onClick={() => navigate('/profile')}
+              className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-red-100"
+              title="Profile"
+            >
+              <User2 className="w-5 h-5" />
             </button>
 
             {/* Logout Button */}
@@ -111,9 +136,11 @@ const Header = ({
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-slate-200">
           <div className="px-4 py-4 space-y-3">
+            <div className="flex items-center justify-around">
+              
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`w-full flex items-center justify-center space-x-2 p-2 rounded-lg ${
+              className={`w-1/2 flex items-center justify-center space-x-2 p-2 rounded-lg ${
                 showHistory
                   ? "bg-blue-100 text-blue-600"
                   : "bg-slate-100 text-slate-600"
@@ -122,6 +149,14 @@ const Header = ({
               <History className="w-5 h-5" />
               <span>History</span>
             </button>
+            <button
+              onClick={() => navigate('/profile')}
+              className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-red-100 "
+              title="Profile"
+            >
+              <User2 className="w-6 h-6" />
+            </button>
+            </div>
 
             <select
               value={selectedLanguage}

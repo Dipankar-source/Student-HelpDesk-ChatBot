@@ -10,11 +10,13 @@ import {
   FaGraduationCap,
   FaBook,
   FaMapMarkerAlt,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../service/firebase"; 
+import { auth } from "../../service/firebase";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -37,6 +39,8 @@ const RegisterPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const universities = ["Brainware University"];
@@ -122,11 +126,16 @@ const RegisterPage = () => {
       }
       if (!formData.studentId.trim()) {
         newErrors.studentId = "Student ID is required";
+      } else if (!/^BWU\/[A-Z]{3}\/\d{2}\/\d{3}$/.test(formData.studentId)) {
+        newErrors.studentId = "Student ID must be in format: BWU/XXX/23/168";
       }
       if (!formData.email.trim()) {
         newErrors.email = "Email is required";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = "Please enter a valid email";
+      } else if (
+        !/^bwu[a-z]{3}\d{5}@brainwareuniversity\.ac\.in$/.test(formData.email)
+      ) {
+        newErrors.email =
+          "Email must be in format: bwuxxx23168@brainwareuniversity.ac.in";
       }
       if (!formData.phone.trim()) {
         newErrors.phone = "Phone number is required";
@@ -200,24 +209,48 @@ const RegisterPage = () => {
         formData.email,
         formData.password
       );
-      
+
       const user = userCredential.user;
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        fullName: formData.fullName,
+        studentId: formData.studentId,
+        email: formData.email,
+        phone: formData.phone,
+        dob: formData.dob,
+        address: formData.address,
+        university: formData.university,
+        faculty: formData.faculty,
+        department: formData.department,
+        program: formData.program,
+        semester: formData.semester,
+        createdAt: new Date(),
+        lastLogin: new Date(),
+        statistics: {
+          chats: 0,
+          messages: 0,
+          queriesResolved: 0,
+          voiceInteractions: 0,
+        },
+      });
       console.log("User registered successfully:", user);
-      navigate("/dashboard", { 
-        state: { message: "Registration successful! Please log in." } 
+      navigate("/dashboard", {
+        state: { message: "Registration successful! Please log in." },
       });
     } catch (error) {
       console.error("Registration error:", error);
       let errorMessage = "Failed to create account. Please try again.";
-      
+
       if (error.code === "auth/email-already-in-use") {
-        errorMessage = "This email is already registered. Please use a different email or log in.";
+        errorMessage =
+          "This email is already registered. Please use a different email or log in.";
       } else if (error.code === "auth/weak-password") {
-        errorMessage = "Password is too weak. Please choose a stronger password.";
+        errorMessage =
+          "Password is too weak. Please choose a stronger password.";
       } else if (error.code === "auth/invalid-email") {
         errorMessage = "Invalid email address. Please enter a valid email.";
       }
-      
+
       setApiError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -351,7 +384,7 @@ const RegisterPage = () => {
                               ? "border-red-500"
                               : "border-gray-300"
                           } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                          placeholder="STU123456"
+                          placeholder="BWU/XXX/23/168"
                         />
                       </div>
                       {errors.studentId && (
@@ -379,7 +412,7 @@ const RegisterPage = () => {
                           className={`w-full pl-10 pr-3 py-2 rounded-lg border ${
                             errors.email ? "border-red-500" : "border-gray-300"
                           } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                          placeholder="your@email.com"
+                          placeholder="bwuabc23168@brainwareuniversity.ac.in"
                         />
                       </div>
                       {errors.email && (
@@ -689,17 +722,28 @@ const RegisterPage = () => {
                           <FaLock className="text-gray-400" />
                         </div>
                         <input
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           name="password"
                           value={formData.password}
                           onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 rounded-lg border ${
+                          className={`w-full pl-10 pr-10 py-2 rounded-lg border ${
                             errors.password
                               ? "border-red-500"
                               : "border-gray-300"
                           } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           placeholder="••••••••"
                         />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <FaEyeSlash className="text-gray-400" />
+                          ) : (
+                            <FaEye className="text-gray-400" />
+                          )}
+                        </button>
                       </div>
                       {errors.password && (
                         <p className="mt-1 text-sm text-red-600">
@@ -721,17 +765,30 @@ const RegisterPage = () => {
                           <FaLock className="text-gray-400" />
                         </div>
                         <input
-                          type="password"
+                          type={showConfirmPassword ? "text" : "password"}
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 rounded-lg border ${
+                          className={`w-full pl-10 pr-10 py-2 rounded-lg border ${
                             errors.confirmPassword
                               ? "border-red-500"
                               : "border-gray-300"
                           } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           placeholder="••••••••"
                         />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <FaEyeSlash className="text-gray-400" />
+                          ) : (
+                            <FaEye className="text-gray-400" />
+                          )}
+                        </button>
                       </div>
                       {errors.confirmPassword && (
                         <p className="mt-1 text-sm text-red-600">

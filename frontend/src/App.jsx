@@ -3,6 +3,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
 import Home from './pages/Home';
+import Profile from './pages/Profile';
+import NotFound from './components/NotFound';
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
   );
 }
