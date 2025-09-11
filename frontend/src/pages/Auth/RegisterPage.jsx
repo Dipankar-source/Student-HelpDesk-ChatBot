@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   FaUser,
   FaLock,
-  FaEnvelope,
   FaPhone,
   FaBirthdayCake,
   FaIdCard,
@@ -14,6 +13,8 @@ import {
 } from "react-icons/fa";
 import { HiOutlineMail } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../service/firebase"; // Import from firebase config
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -38,45 +39,64 @@ const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
 
-  const universities = [
-    "Harvard University",
-    "Stanford University",
-    "MIT",
-    "Cambridge University",
-    "Oxford University",
-    "University of Toronto",
-    "University of Melbourne",
-  ];
-
+  const universities = ["Brainware University"];
   const faculties = [
     "Engineering",
-    "Science",
-    "Arts",
-    "Business",
-    "Medicine",
+    "Computational & Applied Sciences",
+    "Biotechnology & Biosciences",
+    "Agriculture",
+    "Medical & Allied Health Sciences",
+    "Management & Commerce",
     "Law",
-    "Brainucation",
+    "Communication, Multimedia & Film Studies",
+    "Humanities & Social Sciences",
+    "Skill Development",
   ];
-
   const departments = [
-    "Computer Science",
+    "Computer Science & Engineering",
+    "Computer Science & Engineering - AI",
+    "Computer Science & Engineering - CS & DS",
+    "Cyber Science & Technology",
     "Electrical Engineering",
+    "Electronics & Communication Engineering",
     "Mechanical Engineering",
+    "Civil Engineering",
+    "Commerce",
+    "English & Literary Studies",
+    "Mathematics",
     "Physics",
     "Chemistry",
-    "Mathematics",
     "Biology",
+    "Agriculture",
+    "Allied Health Sciences",
+    "Biotechnology",
+    "Food & Nutrition",
+    "Hospital Management",
+    "Media Science & Journalism",
+    "Multimedia",
+    "Law",
+    "Psychology",
+    "Nursing",
+    "Pharmaceutical Technology",
   ];
-
   const programs = [
+    "Bachelor of Technology",
+    "Bachelor of Science (Honours)",
     "Bachelor of Science",
+    "Bachelor of Arts (Honours)",
     "Bachelor of Arts",
-    "Bachelor of Engineering",
+    "Bachelor of Business Administration (Honours)",
+    "Bachelor of Business Administration",
+    "Bachelor of Pharmacy",
+    "Bachelor of Optometry",
+    "Bachelor of Laws (LLB)",
+    "Master of Technology",
     "Master of Science",
+    "Master of Arts",
     "Master of Business Administration",
+    "Master of Pharmacy",
     "PhD",
   ];
-
   const semesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
   const handleChange = (e) => {
@@ -100,21 +120,17 @@ const RegisterPage = () => {
       if (!formData.fullName.trim()) {
         newErrors.fullName = "Full name is required";
       }
-
       if (!formData.studentId.trim()) {
         newErrors.studentId = "Student ID is required";
       }
-
       if (!formData.email.trim()) {
         newErrors.email = "Email is required";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = "Please enter a valid email";
       }
-
       if (!formData.phone.trim()) {
         newErrors.phone = "Phone number is required";
       }
-
       if (!formData.dob) {
         newErrors.dob = "Date of birth is required";
       }
@@ -124,19 +140,15 @@ const RegisterPage = () => {
       if (!formData.university) {
         newErrors.university = "University is required";
       }
-
       if (!formData.faculty) {
         newErrors.faculty = "Faculty is required";
       }
-
       if (!formData.department) {
         newErrors.department = "Department is required";
       }
-
       if (!formData.program) {
         newErrors.program = "Program is required";
       }
-
       if (!formData.semester) {
         newErrors.semester = "Semester is required";
       }
@@ -151,7 +163,6 @@ const RegisterPage = () => {
         newErrors.password =
           "Password must contain uppercase, lowercase, and number";
       }
-
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
@@ -179,7 +190,42 @@ const RegisterPage = () => {
     if (!validateStep(3)) {
       return;
     }
-    navigate('/')
+
+    setIsSubmitting(true);
+    setApiError("");
+
+    try {
+      // Create user with Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      
+      const user = userCredential.user;
+      console.log("User registered successfully:", user);
+      
+      // Here you would typically save additional user data to Firestore or Realtime Database
+      // For now, we'll just navigate to the login page
+      navigate("/dashboard", { 
+        state: { message: "Registration successful! Please log in." } 
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      let errorMessage = "Failed to create account. Please try again.";
+      
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "This email is already registered. Please use a different email or log in.";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Password is too weak. Please choose a stronger password.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Invalid email address. Please enter a valid email.";
+      }
+      
+      setApiError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const steps = [

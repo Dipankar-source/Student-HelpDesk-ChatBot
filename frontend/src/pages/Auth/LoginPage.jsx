@@ -1,37 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  FaEnvelope,
-  FaLock,
-  FaSignInAlt,
-  FaGoogle,
-  FaMicrosoft,
-} from "react-icons/fa";
+import { FaEnvelope, FaLock, FaSignInAlt, FaGoogle } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { Link, useNavigate } from "react-router-dom";
-
-import { initializeApp } from "firebase/app";
 import {
-  getAuth,
   signInWithPopup,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
-  onAuthStateChanged,
 } from "firebase/auth";
+import { auth } from "../../service/firebase"; // Import from firebase config
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAk7EOUaBhAbPsF3t5oBItWprze6IZH_OY",
-  authDomain: "to-do-707f2.firebaseapp.com",
-  databaseURL: "https://to-do-707f2-default-rtdb.firebaseio.com",
-  projectId: "to-do-707f2",
-  storageBucket: "to-do-707f2.firebasestorage.app",
-  messagingSenderId: "239382297060",
-  appId: "1:239382297060:web:a0d49a4aa9c8cff59a6ff1",
-  measurementId: "G-SL7F0W0WQN",
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 const LoginPage = () => {
@@ -47,8 +25,11 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       setIsCheckingAuth(false);
+      if (user) {
+        navigate("/dashboard");
+      }
     });
 
     return () => unsubscribe();
@@ -100,9 +81,19 @@ const LoginPage = () => {
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+      let errorMessage = "Failed to sign in. Please check your credentials.";
+
+      if (error.code === "auth/invalid-credential") {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else if (error.code === "auth/user-not-found") {
+        errorMessage =
+          "No account found with this email. Please register first.";
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage = "Incorrect password. Please try again.";
+      }
+
       setErrors({
-        general:
-          error.message || "Failed to sign in. Please check your credentials.",
+        general: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
@@ -112,9 +103,7 @@ const LoginPage = () => {
   const handleGoogleLogin = async () => {
     try {
       setIsSubmitting(true);
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      console.log("Google login successful:", user);
+      await signInWithPopup(auth, googleProvider);
       navigate("/dashboard");
     } catch (error) {
       console.error("Google login error:", error);
@@ -124,13 +113,6 @@ const LoginPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const inputAnimation = {
-    focus: {
-      scale: 1.02,
-      transition: { duration: 0.2 },
-    },
   };
 
   if (isCheckingAuth) {
@@ -355,7 +337,7 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 items-center justify-center">
                 <div>
                   <button
                     onClick={handleGoogleLogin}
@@ -366,13 +348,6 @@ const LoginPage = () => {
                   >
                     <FaGoogle className="h-4 w-4 text-red-600 mr-2" />
                     <span className="text-xs">Google</span>
-                  </button>
-                </div>
-
-                <div>
-                  <button className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <FaMicrosoft className="h-4 w-4 text-blue-600 mr-2" />
-                    <span className="text-xs">Microsoft</span>
                   </button>
                 </div>
               </div>
