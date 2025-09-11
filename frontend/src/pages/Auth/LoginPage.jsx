@@ -8,7 +8,7 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { auth } from "../../service/firebase"; // Import from firebase config
+import { auth } from "../../service/firebase"; 
 
 const googleProvider = new GoogleAuthProvider();
 

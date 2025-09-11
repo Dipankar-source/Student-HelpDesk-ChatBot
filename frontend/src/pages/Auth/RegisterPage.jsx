@@ -14,7 +14,7 @@ import {
 import { HiOutlineMail } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../service/firebase"; // Import from firebase config
+import { auth } from "../../service/firebase"; 
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -195,7 +195,6 @@ const RegisterPage = () => {
     setApiError("");
 
     try {
-      // Create user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
@@ -204,9 +203,6 @@ const RegisterPage = () => {
       
       const user = userCredential.user;
       console.log("User registered successfully:", user);
-      
-      // Here you would typically save additional user data to Firestore or Realtime Database
-      // For now, we'll just navigate to the login page
       navigate("/dashboard", { 
         state: { message: "Registration successful! Please log in." } 
       });

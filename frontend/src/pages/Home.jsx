@@ -33,8 +33,7 @@ import { format } from "date-fns";
 import html2canvas from "html2canvas";
 import { href } from "react-router-dom";
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_API_URL =import.meta.env.VITE_GEMINI_API_URL;
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const Home = () => {
@@ -321,6 +320,10 @@ const Home = () => {
               parts: [
                 {
                   text: `You are BrainuBot, the official student assistant for Brainware University.  
+                IMPORTANT: You must ONLY answer questions related to Brainware University, its programs, admissions, facilities, events, and related academic matters.
+                
+                If a question is not related to Brainware University, politely decline to answer and redirect the user to ask about university-related topics.
+                
                 Your style must always be:
                 - 🎯 Give the direct answer first.
                 - 🔍 Search the web for the most current info when needed.
@@ -363,6 +366,39 @@ const Home = () => {
 
       if (data.candidates && data.candidates[0] && data.candidates[0].content) {
         let geminiResponse = data.candidates[0].content.parts[0].text.trim();
+
+        // Check if the response is about Brainware University
+        const universityKeywords = [
+          "brainware",
+          "university",
+          "admission",
+          "course",
+          "program",
+          "faculty",
+          "campus",
+          "academic",
+          "student",
+          "library",
+          "hostel",
+          "fee",
+          "scholarship",
+          "placement",
+          "event",
+        ];
+
+        const isAboutUniversity = universityKeywords.some((keyword) =>
+          geminiResponse.toLowerCase().includes(keyword)
+        );
+
+        // If the response doesn't seem to be about the university, provide a fallback
+        if (
+          !isAboutUniversity &&
+          !userMessage.toLowerCase().includes("brainware")
+        ) {
+          geminiResponse =
+            "I'm sorry, but I'm specifically designed to answer questions about Brainware University. Please ask me about our programs, admissions process, campus facilities, or any other university-related topics. You can visit our official website https://www.brainwareuniversity.ac.in/ for more information.";
+        }
+
         if (language !== "en") {
           geminiResponse = await translateText(geminiResponse, language);
         }
@@ -430,7 +466,7 @@ const Home = () => {
       const printDiv = document.createElement("div");
       printDiv.style.position = "absolute";
       printDiv.style.left = "-9999px";
-      printDiv.style.width = "210mm"; 
+      printDiv.style.width = "210mm";
       printDiv.style.padding = "20px";
       printDiv.style.fontSize = "14px";
       printDiv.style.fontFamily = "Arial, sans-serif";
