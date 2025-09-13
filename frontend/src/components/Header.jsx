@@ -46,6 +46,8 @@ const Header = ({
   const [speechSupported, setSpeechSupported] = useState(false);
   const utteranceRef = useRef(null);
   const isMuted = propIsMuted;
+  const mobileMenuRef = useRef(null);
+  
   useEffect(() => {
     if ("speechSynthesis" in window) {
       setSpeechSupported(true);
@@ -246,8 +248,9 @@ const Header = ({
         </div>
       </div>
       <div
-        className={`md:hidden bg-white border-t border-slate-200 shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+        ref={mobileMenuRef}
+        className={`md:hidden bg-white border-t border-slate-200 shadow-lg overflow-y-auto transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <div className="px-4 py-4 space-y-4">
