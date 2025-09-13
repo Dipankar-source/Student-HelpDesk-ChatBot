@@ -5,7 +5,11 @@ const TypingIndicator = () => {
     <div className="flex justify-start">
       <div className="flex items-end space-x-2">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-          <Bot className="w-4 h-4 text-white" />
+          <img
+            className="h-full w-full object-cover"
+            src="./help.png"
+            alt="bot"
+          />
         </div>
         <div className="bg-white rounded-2xl rounded-bl-md shadow-sm border border-slate-200 px-4 py-2">
           <div className="flex space-x-1">

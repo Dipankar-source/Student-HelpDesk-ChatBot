@@ -1,32 +1,33 @@
-import { Bot, User, Copy, Check } from "lucide-react";
+import { User, Copy, Check } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { coldarkDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
-const Message = ({ message }) => {
+const Message = ({ message, index }) => {
   const [copiedCode, setCopiedCode] = useState(null);
 
-  const copyToClipboard = (code, index) => {
+  const copyToClipboard = (code, codeIndex) => {
     navigator.clipboard.writeText(code);
-    setCopiedCode(index);
+    setCopiedCode(codeIndex);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
   const CodeBlock = ({ node, inline, className, children, ...props }) => {
     const match = /language-(\w+)/.exec(className || '');
     const codeText = String(children).replace(/\n$/, '');
-    const index = props['data-index'];
+    const codeIndex = props['data-index'];
     
     return !inline && match ? (
       <div className="relative my-3 rounded-lg overflow-hidden">
         <div className="flex justify-between items-center bg-gray-800 px-4 py-2 text-xs text-gray-200">
           <span>{match[1]}</span>
           <button 
-            onClick={() => copyToClipboard(codeText, index)}
-            className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded"
+            onClick={() => copyToClipboard(codeText, codeIndex)}
+            className="flex items-center space-x-1 bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition-colors"
           >
-            {copiedCode === index ? (
+            {copiedCode === codeIndex ? (
               <>
                 <Check className="w-3 h-3" />
                 <span>Copied!</span>
@@ -62,18 +63,35 @@ const Message = ({ message }) => {
         href={href} 
         target="_blank" 
         rel="noopener noreferrer"
-        className="text-blue-600 hover:text-blue-800 underline font-medium"
+        className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
       >
         {children}
       </a>
     );
   };
+  const messageVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: message.sender === "user" ? 20 : -20,
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut"
+      }
+    }
+  };
 
   return (
-    <div
+    <motion.div
+      variants={messageVariants}
+      initial="hidden"
+      animate="visible"
       className={`flex ${
         message.sender === "user" ? "justify-end" : "justify-start"
-      }`}
+      } mb-4`}
     >
       <div
         className={`flex items-start space-x-2 max-w-xs lg:max-w-2xl ${
@@ -92,10 +110,13 @@ const Message = ({ message }) => {
           {message.sender === "user" ? (
             <User className="w-4 h-4" />
           ) : (
-            <img className="h-full w-full object-cover" src="./help.png" alt="bot" />
+            <img className="h-full w-full object-cover rounded-full" src="./help.png" alt="bot" />
           )}
         </div>
-        <div
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
           className={`px-4 py-3 rounded-2xl ${
             message.sender === "user"
               ? "bg-blue-600 text-white rounded-br-md"
@@ -107,13 +128,13 @@ const Message = ({ message }) => {
               <ReactMarkdown
                 components={{
                   code: ({ node, inline, className, children, ...props }) => {
-                    const index = Math.random().toString(36).substring(7);
+                    const codeIndex = Math.random().toString(36).substring(7);
                     return (
                       <CodeBlock 
                         node={node} 
                         inline={inline} 
                         className={className} 
-                        data-index={index}
+                        data-index={codeIndex}
                         {...props}
                       >
                         {children}
@@ -177,9 +198,9 @@ const Message = ({ message }) => {
                   }
                 )}
           </p>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

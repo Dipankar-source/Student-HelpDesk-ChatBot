@@ -303,11 +303,9 @@ export const quickMessages = [
 
 
 
-
-
 export const stats = [
     { label: "Students Helped", value: "10,000+", icon: Users },
     { label: "Questions Answered", value: "50,000+", icon: MessageCircle },
-    { label: "Languages Supported", value: "8+", icon: Globe },
+    { label: "Our Projected Languages Support", value: "8+", icon: Globe },
     { label: "Average Response Time", value: "<2s", icon: Zap },
 ];

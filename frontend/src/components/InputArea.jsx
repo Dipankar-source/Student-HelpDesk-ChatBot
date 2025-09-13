@@ -10,7 +10,7 @@ const InputArea = ({
   setSearchQuery,
   filteredQuickMessages,
   handleQuickMessage,
-  quickMessages
+  quickMessages,
 }) => {
   return (
     <div className="p-4 bg-white border-t border-slate-200 rounded-2xl">
@@ -21,7 +21,7 @@ const InputArea = ({
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="Type your question here..."
+            placeholder="Type here for better results..."
             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
@@ -34,9 +34,9 @@ const InputArea = ({
           }`}
         >
           {isListening ? (
-            <MicOff className="w-5 h-5" />
-          ) : (
             <Mic className="w-5 h-5" />
+          ) : (
+            <MicOff className="w-5 h-5" />
           )}
         </button>
         <button
@@ -47,8 +47,6 @@ const InputArea = ({
           <Send className="w-5 h-5" />
         </button>
       </div>
-
-      {/* Quick Messages Search & Filter */}
       <div className="mt-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />

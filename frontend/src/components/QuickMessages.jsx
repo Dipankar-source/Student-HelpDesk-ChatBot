@@ -1,6 +1,6 @@
 const QuickMessages = ({ filteredQuickMessages, handleQuickMessage }) => {
   return (
-    <div className="mt-6 bg-white rounded-2xl shadow-lg p-6 border border-slate-200 h-75 lg:h-95 overflow-auto">
+    <div className="mt-6 bg-white rounded-2xl shadow-lg p-6 border border-slate-200 h-75 lg:h-[675px] overflow-auto">
       <h3 className="text-lg font-semibold text-slate-800 mb-4">
         Quick Questions
       </h3>

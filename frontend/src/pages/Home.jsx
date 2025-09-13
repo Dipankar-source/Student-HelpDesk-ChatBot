@@ -33,7 +33,7 @@ import { format } from "date-fns";
 import html2canvas from "html2canvas";
 import { href } from "react-router-dom";
 
-const GEMINI_API_URL =import.meta.env.VITE_GEMINI_API_URL;
+const GEMINI_API_URL = import.meta.env.VITE_GEMINI_API_URL;
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const Home = () => {
@@ -682,7 +682,7 @@ const Home = () => {
       } catch (e) {
         console.warn("Audio unlock failed:", e);
       } finally {
-        setIsMuted(false);
+        setIsMuted(true);
         setIsFirstInteraction(false);
       }
     }

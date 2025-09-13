@@ -1,9 +1,13 @@
 import { GraduationCap, Phone, Mail, Clock } from "lucide-react";
 
-const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) => {
+const Sidebar = ({
+  stats,
+  categories,
+  selectedCategory,
+  setSelectedCategory,
+}) => {
   return (
     <div className="lg:col-span-1 space-y-6 hidden md:block">
-      {/* Welcome Section */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -16,8 +20,6 @@ const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) =
             Your 24/7 AI-powered student assistant
           </p>
         </div>
-
-        {/* Stats */}
         <div className="grid grid-cols-2 gap-4">
           {stats.map((stat) => (
             <div
@@ -33,8 +35,6 @@ const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) =
           ))}
         </div>
       </div>
-
-      {/* Quick Actions Category Filter */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
         <h3 className="text-lg font-semibold text-slate-800 mb-4">
           Categories
@@ -56,8 +56,6 @@ const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) =
           ))}
         </div>
       </div>
-
-      {/* Contact Info */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
         <h3 className="text-lg font-semibold text-slate-800 mb-4">
           Need Human Help?
@@ -65,11 +63,11 @@ const Sidebar = ({ stats, categories, selectedCategory, setSelectedCategory }) =
         <div className="space-y-3">
           <div className="flex items-center space-x-3 text-slate-600">
             <Phone className="w-5 h-5 text-blue-600" />
-            <span>(555) 123-4567</span>
+            <span>070031 62601</span>
           </div>
           <div className="flex items-center space-x-3 text-slate-600">
             <Mail className="w-5 h-5 text-blue-600" />
-            <span>help@university.Brainu</span>
+            <span>info@brainwareuniversity.ac.in.</span>
           </div>
           <div className="flex items-center space-x-3 text-slate-600">
             <Clock className="w-5 h-5 text-blue-600" />

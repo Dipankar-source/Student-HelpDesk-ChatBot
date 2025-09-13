@@ -23,7 +23,7 @@ const Footer = () => {
             </span>
             <span className="flex items-center space-x-1">
               <Globe className="w-4 h-4 text-blue-400" />
-              <span>Multilingual Support</span>
+              <span>Multilingual Support is Upcomming</span>
             </span>
           </div>
           <div className="mt-6 pt-4 border-t border-slate-800 text-xs text-slate-500">
