@@ -308,115 +308,146 @@ const Home = () => {
     setIsTyping(true);
     setApiError(null);
 
-    try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
+    const MAX_RETRIES = 5;
+    let delay = 1000; // start with 1s
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch(
+          `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
                 {
-                  text: `You are BrainuBot, the official student assistant for Brainware University.  
-                IMPORTANT: You must ONLY answer questions related to Brainware University, its programs, admissions, facilities, events, and related academic matters.
-                
-                If a question is not related to Brainware University, politely decline to answer and redirect the user to ask about university-related topics.
-                
-                Your style must always be:
-                - 🎯 Give the direct answer first.
-                - 🔍 Search the web for the most current info when needed.
-                - 📌 If exact date/info is unknown, provide the most likely details.
-                - 📝 Format clearly with bullets, numbered steps, or short paragraphs.
-                - ✅ Keep tone professional.
-                - 🌐 Provide links at the end only.
-                - Use markdown formatting.
-                
-                User question: ${userMessage}`,
+                  parts: [
+                    {
+                      text: `You are BrainuBot, the official student assistant for Brainware University.  
+                  IMPORTANT: You must ONLY answer questions related to Brainware University, its programs, admissions, facilities, events, and related academic matters.
+                  
+                  If a question is not related to Brainware University, politely decline to answer and redirect the user to ask about university-related topics.
+                  
+                  Your style must always be:
+                  - 🎯 Give the direct answer first.
+                  - 🔍 Search the web for the most current info when needed.
+                  - 📌 If exact date/info is unknown, provide the most likely details.
+                  - 📝 Format clearly with bullets, numbered steps, or short paragraphs.
+                  - ✅ Keep tone professional.
+                  - 🌐 Provide links at the end only.
+                  - Use markdown formatting.
+                  
+                  User question: ${userMessage}`,
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 1024,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        const errorMsg =
-          errData?.error?.message || `HTTP error: ${response.status}`;
-
-        setApiError(errorMsg);
-        toast.error(`AI service error: ${errorMsg}`);
-
-        if (response.status === 401) {
-          throw new Error(
-            `Authentication failed. Please check your API key. Details: ${errorMsg}`
-          );
-        } else {
-          throw new Error(`Gemini API error: ${response.status} - ${errorMsg}`);
-        }
-      }
-
-      const data = await response.json();
-
-      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-        let geminiResponse = data.candidates[0].content.parts[0].text.trim();
-
-        // Check if the response is about Brainware University
-        const universityKeywords = [
-          "brainware",
-          "university",
-          "admission",
-          "course",
-          "program",
-          "faculty",
-          "campus",
-          "academic",
-          "student",
-          "library",
-          "hostel",
-          "fee",
-          "scholarship",
-          "placement",
-          "event",
-        ];
-
-        const isAboutUniversity = universityKeywords.some((keyword) =>
-          geminiResponse.toLowerCase().includes(keyword)
+              generationConfig: {
+                temperature: 0.5,
+                maxOutputTokens: 1024,
+              },
+            }),
+          }
         );
 
-        // If the response doesn't seem to be about the university, provide a fallback
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errorMsg =
+            errData?.error?.message || `HTTP error: ${response.status}`;
+
+          // Handle 503 → retry instead of failing immediately
+          if (response.status === 503 && attempt < MAX_RETRIES) {
+            console.warn(
+              `Gemini API overloaded (503). Retrying attempt ${attempt} in ${delay}ms...`
+            );
+            await new Promise((res) => setTimeout(res, delay));
+            delay *= 2; // exponential backoff
+            continue; // retry the request
+          }
+
+          setApiError(errorMsg);
+          toast.error(`AI service error: ${errorMsg}`);
+
+          if (response.status === 401) {
+            throw new Error(
+              `Authentication failed. Please check your API key. Details: ${errorMsg}`
+            );
+          } else {
+            throw new Error(
+              `Gemini API error: ${response.status} - ${errorMsg}`
+            );
+          }
+        }
+
+        const data = await response.json();
+
         if (
-          !isAboutUniversity &&
-          !userMessage.toLowerCase().includes("brainware")
+          data.candidates &&
+          data.candidates[0] &&
+          data.candidates[0].content
         ) {
-          geminiResponse =
-            "I'm sorry, but I'm specifically designed to answer questions about Brainware University. Please ask me about our programs, admissions process, campus facilities, or any other university-related topics. You can visit our official website https://www.brainwareuniversity.ac.in/ for more information.";
-        }
+          let geminiResponse = data.candidates[0].content.parts[0].text.trim();
 
-        if (language !== "en") {
-          geminiResponse = await translateText(geminiResponse, language);
+          // Keywords to check if the answer is about Brainware
+          const universityKeywords = [
+            "brainware",
+            "university",
+            "admission",
+            "course",
+            "program",
+            "faculty",
+            "campus",
+            "academic",
+            "student",
+            "library",
+            "hostel",
+            "fee",
+            "scholarship",
+            "placement",
+            "event",
+          ];
+
+          const isAboutUniversity = universityKeywords.some((keyword) =>
+            geminiResponse.toLowerCase().includes(keyword)
+          );
+
+          // Fallback if the response is unrelated
+          if (
+            !isAboutUniversity &&
+            !userMessage.toLowerCase().includes("brainware")
+          ) {
+            geminiResponse =
+              "I'm sorry, but I'm specifically designed to answer questions about Brainware University. Please ask me about our programs, admissions process, campus facilities, or any other university-related topics. You can visit our official website https://www.brainwareuniversity.ac.in/ for more information.";
+          }
+
+          if (language !== "en") {
+            geminiResponse = await translateText(geminiResponse, language);
+          }
+
+          setIsTyping(false);
+          return geminiResponse;
+        } else {
+          throw new Error("Invalid response format from Gemini API");
         }
-        setIsTyping(false);
-        return geminiResponse;
-      } else {
-        throw new Error("Invalid response format from Gemini API");
+      } catch (error) {
+        if (attempt === MAX_RETRIES) {
+          console.error("Error calling Gemini API:", error);
+          setIsTyping(false);
+
+          return (
+            "I'm currently unable to access the AI service. " +
+            "This might be due to an invalid API key, quota limit, or temporary service outage. " +
+            "Please check your API configuration or try again later. " +
+            "In the meantime, you can visit the [official Brainware University website](https://www.brainwareuniversity.ac.in/) for information."
+          );
+        } else {
+          console.warn(`Retry attempt ${attempt} failed:`, error);
+          await new Promise((res) => setTimeout(res, delay));
+          delay *= 2;
+        }
       }
-    } catch (error) {
-      console.error("Error calling Gemini API:", error);
-      setIsTyping(false);
-
-      return (
-        "I'm currently unable to access the AI service. " +
-        "This might be due to an invalid API key or service outage. " +
-        "Please check your API configuration or try again later. " +
-        "In the meantime, you can visit the [official Brainware University website](https://www.brainwareuniversity.ac.in/) for information."
-      );
     }
   };
 
