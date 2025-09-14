@@ -16,7 +16,8 @@ import {
 import { HiOutlineMail } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../service/firebase";
+import { auth, db } from "../../service/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -28,7 +29,6 @@ const RegisterPage = () => {
     phone: "",
     dob: "",
     university: "",
-    faculty: "",
     department: "",
     program: "",
     semester: "",
@@ -44,18 +44,6 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   const universities = ["Brainware University"];
-  const faculties = [
-    "Engineering",
-    "Computational & Applied Sciences",
-    "Biotechnology & Biosciences",
-    "Agriculture",
-    "Medical & Allied Health Sciences",
-    "Management & Commerce",
-    "Law",
-    "Communication, Multimedia & Film Studies",
-    "Humanities & Social Sciences",
-    "Skill Development",
-  ];
   const departments = [
     "Computer Science & Engineering",
     "Computer Science & Engineering - AI",
@@ -149,9 +137,6 @@ const RegisterPage = () => {
       if (!formData.university) {
         newErrors.university = "University is required";
       }
-      if (!formData.faculty) {
-        newErrors.faculty = "Faculty is required";
-      }
       if (!formData.department) {
         newErrors.department = "Department is required";
       }
@@ -220,7 +205,6 @@ const RegisterPage = () => {
         dob: formData.dob,
         address: formData.address,
         university: formData.university,
-        faculty: formData.faculty,
         department: formData.department,
         program: formData.program,
         semester: formData.semester,
@@ -235,7 +219,7 @@ const RegisterPage = () => {
       });
       console.log("User registered successfully:", user);
       navigate("/dashboard", {
-        state: { message: "Registration successful! Please log in." },
+        state: { message: "Registration successful! Welcome to your dashboard." },
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -547,42 +531,7 @@ const RegisterPage = () => {
                         </p>
                       )}
                     </div>
-
-                    <div>
-                      <label className="block text-gray-700 text-sm font-medium mb-1">
-                        Faculty *
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <FaGraduationCap className="text-gray-400" />
-                        </div>
-                        <select
-                          name="faculty"
-                          value={formData.faculty}
-                          onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 rounded-lg border ${
-                            errors.faculty
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none`}
-                        >
-                          <option value="">Select Faculty</option>
-                          {faculties.map((faculty, index) => (
-                            <option key={index} value={faculty}>
-                              {faculty}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {errors.faculty && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.faculty}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Department *
@@ -615,7 +564,9 @@ const RegisterPage = () => {
                         </p>
                       )}
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Program *
@@ -648,9 +599,7 @@ const RegisterPage = () => {
                         </p>
                       )}
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
                     <div>
                       <label className="block text-gray-700 text-sm font-medium mb-1">
                         Semester *
