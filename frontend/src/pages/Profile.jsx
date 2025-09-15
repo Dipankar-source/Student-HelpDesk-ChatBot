@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut, updateProfile } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../service/firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -9,6 +9,8 @@ import "react-toastify/dist/ReactToastify.css";
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("profile");
   const [formData, setFormData] = useState({
     displayName: "",
     email: "",
@@ -30,39 +32,17 @@ const Profile = () => {
     voiceInteractions: 0,
   });
   const navigate = useNavigate();
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setUserId(null);
-      setCurrentSessionId(null);
-      setMessages([
-        {
-          id: 1,
-          text: "Hello! I'm your AI assistant. How can I help you today? 👋",
-          sender: "bot",
-          timestamp: new Date(),
-          language: "en",
-        },
-      ]);
-
-      toast.success("Logged out successfully!");
-      navigate("/");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("Error logging out");
-    }
-  };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
-
-        // Get user data from Firestore
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
+        
+        // Set up real-time listener for user data
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            const userData = doc.data();
             setFormData({
               displayName: userData.fullName || user.displayName || "",
               email: userData.email || user.email || "",
@@ -78,29 +58,64 @@ const Profile = () => {
               preferredLanguage: userData.preferredLanguage || "en",
             });
 
-            // Get user statistics
             if (userData.statistics) {
               setStatistics(userData.statistics);
             }
+            
+            setIsLoading(false);
+          } else {
+            // Create a basic user document if it doesn't exist
+            setFormData({
+              displayName: user.displayName || "",
+              email: user.email || "",
+              phone: "",
+              studentId: "",
+              dob: "",
+              address: "",
+              university: "",
+              faculty: "",
+              department: "",
+              program: "",
+              semester: "",
+              preferredLanguage: "en",
+            });
+            setIsLoading(false);
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          toast.error("Error loading profile data");
-        }
+        }, (error) => {
+          console.error("Error listening to user data:", error);
+          setIsLoading(false);
+        });
+
+        return () => unsubscribeUser();
       } else {
         navigate("/");
       }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast.success("Logged out successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Error logging out");
+    }
+  };
 
   const handleSaveProfile = async () => {
     try {
+      setIsLoading(true);
+      
       // Update Firebase Auth profile
-      await updateProfile(auth.currentUser, {
-        displayName: formData.displayName,
-      });
+      if (formData.displayName !== user.displayName) {
+        await updateProfile(auth.currentUser, {
+          displayName: formData.displayName,
+        });
+      }
 
       // Update Firestore user document
       await updateDoc(doc(db, "users", user.uid), {
@@ -123,6 +138,8 @@ const Profile = () => {
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Error updating profile");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -134,10 +151,13 @@ const Profile = () => {
     }));
   };
 
-  if (!user) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        Loading...
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
       </div>
     );
   }
@@ -146,421 +166,435 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4">
       <ToastContainer position="top-right" autoClose={5000} />
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-800">User Profile</h1>
-          <button
-            onClick={() => navigate("/")}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Back to Chat
-          </button>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">User Profile</h1>
+            <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-colors flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Chat
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Card */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800">
-                Personal Information
-              </h2>
-              {!isEditing ? (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar Navigation */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-3">
+                  {formData.displayName ? formData.displayName.charAt(0).toUpperCase() : "U"}
+                </div>
+                <h2 className="text-xl font-semibold text-gray-800">{formData.displayName || "User"}</h2>
+                <p className="text-gray-600 text-sm">{formData.email}</p>
+              </div>
+
+              <nav className="space-y-2">
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="text-indigo-600 hover:text-indigo-800 font-medium"
+                  onClick={() => setActiveTab("profile")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${activeTab === "profile" ? "bg-indigo-100 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}
                 >
-                  Edit Profile
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Profile Information
                 </button>
-              ) : (
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className="text-gray-600 hover:text-gray-800 font-medium"
+                  onClick={() => setActiveTab("stats")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${activeTab === "stats" ? "bg-indigo-100 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}
                 >
-                  Cancel
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Usage Statistics
                 </button>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="displayName"
-                      value={formData.displayName}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.displayName || "Not provided"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <p className="text-gray-900">{formData.email}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.phone || "Not provided"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Student ID
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="studentId"
-                      value={formData.studentId}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.studentId || "Not provided"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.dob || "Not provided"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.address || "Not provided"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    University
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="university"
-                      value={formData.university}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.university || "Not provided"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Faculty
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="faculty"
-                      value={formData.faculty}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.faculty || "Not provided"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.department || "Not provided"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Program
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="program"
-                      value={formData.program}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.program || "Not provided"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Semester
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="semester"
-                      value={formData.semester}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.semester || "Not provided"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preferred Language
-                  </label>
-                  {isEditing ? (
-                    <select
-                      name="preferredLanguage"
-                      value={formData.preferredLanguage}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="hi">Hindi</option>
-                      <option value="bn">Bengali</option>
-                    </select>
-                  ) : (
-                    <p className="text-gray-900">
-                      {formData.preferredLanguage === "en" && "English"}
-                      {formData.preferredLanguage === "es" && "Spanish"}
-                      {formData.preferredLanguage === "fr" && "French"}
-                      {formData.preferredLanguage === "hi" && "Hindi"}
-                      {formData.preferredLanguage === "bn" && "Bengali"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="pt-4">
-                  <button
-                    onClick={handleSaveProfile}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              )}
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center text-red-600 hover:bg-red-50"
+                >
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout
+                </button>
+              </nav>
             </div>
           </div>
 
-          {/* Stats Card */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              Usage Statistics
-            </h2>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-indigo-100 rounded-md mr-3">
-                    <svg
-                      className="w-5 h-5 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {activeTab === "profile" && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800">Profile</h2>
+                  {!isEditing ? (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </button>
+                  ) : (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveProfile}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Personal Details</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="displayName"
+                              value={formData.displayName}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your full name"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.displayName || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                          <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{formData.email}</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                          {isEditing ? (
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your phone number"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.phone || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                          {isEditing ? (
+                            <input
+                              type="date"
+                              name="dob"
+                              value={formData.dob}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.dob || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Chat Sessions
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {statistics.chats}
-                    </p>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Academic Information</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="studentId"
+                              value={formData.studentId}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your student ID"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.studentId || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">University</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="university"
+                              value={formData.university}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your university"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.university || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Faculty</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="faculty"
+                              value={formData.faculty}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your faculty"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.faculty || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="department"
+                              value={formData.department}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your department"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.department || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Additional Information</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Program</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="program"
+                              value={formData.program}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your program"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.program || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="semester"
+                              value={formData.semester}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your semester"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.semester || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="address"
+                              value={formData.address}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Enter your address"
+                            />
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.address || "Not provided"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Language</label>
+                          {isEditing ? (
+                            <select
+                              name="preferredLanguage"
+                              value={formData.preferredLanguage}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            >
+                              <option value="en">English</option>
+                              <option value="hi">Hindi</option>
+                              <option value="bn">Bengali</option>
+                            </select>
+                          ) : (
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                              {formData.preferredLanguage === "en" && "English"}
+                              {formData.preferredLanguage === "hi" && "Hindi"}
+                              {formData.preferredLanguage === "bn" && "Bengali"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-md mr-3">
-                    <svg
-                      className="w-5 h-5 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+            {activeTab === "stats" && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-6">Usage Statistics</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-indigo-100">Chat Sessions</p>
+                        <p className="text-3xl font-bold mt-1">{statistics.chats}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Queries Resolved
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {statistics.queriesResolved}
-                    </p>
+
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100">Queries Resolved</p>
+                        <p className="text-3xl font-bold mt-1">{statistics.queriesResolved}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100">Voice Interactions</p>
+                        <p className="text-3xl font-bold mt-1">{statistics.voiceInteractions}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-amber-100">Total Messages</p>
+                        <p className="text-3xl font-bold mt-1">{statistics.messages}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 bg-gray-50 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">Activity Overview</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                      <p className="text-sm text-gray-600">Daily Average</p>
+                      <p className="text-xl font-semibold text-indigo-600">{Math.round(statistics.messages / 30) || 0}</p>
+                      <p className="text-xs text-gray-500">messages</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                      <p className="text-sm text-gray-600">Resolution Rate</p>
+                      <p className="text-xl font-semibold text-green-600">
+                        {statistics.chats ? Math.round((statistics.queriesResolved / statistics.chats) * 100) : 0}%
+                      </p>
+                      <p className="text-xs text-gray-500">of queries</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                      <p className="text-sm text-gray-600">Voice Usage</p>
+                      <p className="text-xl font-semibold text-purple-600">
+                        {statistics.messages ? Math.round((statistics.voiceInteractions / statistics.messages) * 100) : 0}%
+                      </p>
+                      <p className="text-xs text-gray-500">of interactions</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                      <p className="text-sm text-gray-600">Active Days</p>
+                      <p className="text-xl font-semibold text-amber-600">{Math.round(statistics.chats / 3) || 0}</p>
+                      <p className="text-xs text-gray-500">this month</p>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-purple-100 rounded-md mr-3">
-                    <svg
-                      className="w-5 h-5 text-purple-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Voice Interactions
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {statistics.voiceInteractions}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-yellow-100 rounded-md mr-3">
-                    <svg
-                      className="w-5 h-5 text-yellow-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 6h16M4 12h16m-7 6h7"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Total Messages
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {statistics.messages}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-4 border-t border-gray-200">
-              <button
-                onClick={handleLogout}
-                className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
