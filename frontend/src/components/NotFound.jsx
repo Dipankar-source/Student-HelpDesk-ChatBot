@@ -1,26 +1,45 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import Lottie from "lottie-react";
+import cavemanAnimation from "./Caveman - 404 Page.json";
 
 const NotFound = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 text-center px-4">
-      <h1 className="text-7xl md:text-9xl font-extrabold text-gray-800 drop-shadow-lg">
-        404
-      </h1>
-      <h2 className="mt-4 text-2xl md:text-3xl font-semibold text-gray-700">
-        Oops! Page Not Found
-      </h2>
-      <p className="mt-2 text-gray-500 max-w-lg">
-        The page you are looking for might have been removed, had its name
-        changed, or is temporarily unavailable.
-      </p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white px-4">
+      <div className="max-w-3xl w-full text-center">
+        {/* Animation Container */}
+        <div className="relative w-full h-64 md:h-80 mb-8">
+          <div className="caveman-animation">
+            <div className="w-full h-full bg-zinc-50 rounded-2xl flex items-center justify-center">
+              <div className="text-center">
+                <Lottie
+                  animationData={cavemanAnimation}
+                  loop={true}
+                  className="w-full h-full relative"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <Link
-        to="/"
-        className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-2xl shadow-md hover:bg-blue-700 transition duration-300 ease-in-out"
-      >
-        Go Back Home
-      </Link>
+        {/* Content */}
+        <h1 className="text-8xl md:text-9xl font-bold text-orange-700 mb-2">
+          404
+        </h1>
+        <div className="mb-10"></div>
+        <div className="mb-8">
+          <p className="text-gray-500 text-lg">Error Code: 404</p>
+        </div>
+
+        <div className="mt-10">
+          <button
+            onClick={() => window.history.back()}
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300 ease-in-out font-semibold shadow-md"
+          >
+            Back to previous Page
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
