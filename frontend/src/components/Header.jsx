@@ -135,7 +135,7 @@ const Header = ({
         }
 
         if (!vapiRef.current && window.Vapi) {
-          vapiRef.current = new window.Vapi("186d2aa2-bfe7-4590-b014-8e3da47cb533");
+          vapiRef.current = new window.Vapi(import.meta.env.VITE_VAPI_PUBLIC_KEY);
 
           vapiRef.current.on("call-end", () => setIsCallActive(false));
           vapiRef.current.on("error", (err) => {
@@ -147,7 +147,7 @@ const Header = ({
           });
         }
 
-        await vapiRef.current.start("83c6cc8b-372d-4125-9e78-1836ac9c74dc");
+        await vapiRef.current.start(import.meta.env.VITE_VAPI_ASSISTANT_ID);
         setIsCallActive(true);
       } catch (error) {
         console.error("Failed to start Vapi call:", error);
