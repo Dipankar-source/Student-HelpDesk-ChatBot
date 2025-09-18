@@ -13,6 +13,9 @@ import {
   Play,
   Square,
 } from "lucide-react";
+import { IoCall } from "react-icons/io5";
+import VapiModule from "@vapi-ai/web";
+console.log(VapiModule); // Does it have .Vapi?
 
 const Header = ({
   showHistory,
@@ -44,15 +47,116 @@ const Header = ({
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [vapiLoaded, setVapiLoaded] = useState(false);
+  const [vapiError, setVapiError] = useState(false);
   const utteranceRef = useRef(null);
+  const vapiRef = useRef(null);
   const isMuted = propIsMuted;
   const mobileMenuRef = useRef(null);
-  
+
   useEffect(() => {
     if ("speechSynthesis" in window) {
       setSpeechSupported(true);
     }
+
+    // Try to load Vapi with multiple fallback options
+    loadVapiWithFallbacks();
+
+    return () => {
+      if (vapiRef.current) {
+        vapiRef.current.stop();
+      }
+    };
   }, []);
+
+  const loadVapiWithFallbacks = () => {
+    // Try loading from npm package first
+    try {
+      import("@vapi-ai/web")
+        .then((module) => {
+          window.Vapi = module.default || module;
+          setVapiLoaded(true);
+          console.log("Vapi loaded from npm package");
+        })
+        .catch(() => {
+          // If npm package fails, try loading from CDN
+          loadVapiFromCDN();
+        });
+    } catch (error) {
+      loadVapiFromCDN();
+    }
+  };
+
+  const loadVapiFromCDN = () => {
+    // Try multiple CDN options
+    const cdns = [
+      "https://unpkg.com/@vapi-ai/web@latest/dist/index.js",
+      "https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.js",
+    ];
+
+    let currentCdnIndex = 0;
+
+    const tryNextCDN = () => {
+      if (currentCdnIndex >= cdns.length) {
+        setVapiError(true);
+        console.error("All CDN attempts failed");
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = cdns[currentCdnIndex];
+      script.async = true;
+      script.onload = () => {
+        setVapiLoaded(true);
+        console.log("Vapi loaded from CDN:", cdns[currentCdnIndex]);
+      };
+      script.onerror = () => {
+        currentCdnIndex++;
+        tryNextCDN();
+      };
+      document.head.appendChild(script);
+    };
+
+    tryNextCDN();
+  };
+
+  const handleCallToggle = async () => {
+    if (isCallActive) {
+      await vapiRef.current?.stop();
+      setIsCallActive(false);
+    } else {
+      try {
+        if (!vapiLoaded || vapiError) {
+          alert(
+            "Voice assistant is not available at the moment. Please try again later."
+          );
+          return;
+        }
+
+        if (!vapiRef.current && window.Vapi) {
+          vapiRef.current = new window.Vapi("186d2aa2-bfe7-4590-b014-8e3da47cb533");
+
+          vapiRef.current.on("call-end", () => setIsCallActive(false));
+          vapiRef.current.on("error", (err) => {
+            console.error("Vapi error:", err);
+            setIsCallActive(false);
+            alert(
+              "An error occurred with the voice assistant. Please try again."
+            );
+          });
+        }
+
+        await vapiRef.current.start("83c6cc8b-372d-4125-9e78-1836ac9c74dc");
+        setIsCallActive(true);
+      } catch (error) {
+        console.error("Failed to start Vapi call:", error);
+        alert(
+          "Could not start the call. Please check your connection and try again."
+        );
+      }
+    }
+  };
 
   const speakText = (text) => {
     if (!speechSupported || !text) return;
@@ -94,6 +198,7 @@ const Header = ({
       setIsSpeaking(false);
     }
   };
+
   const handleToggleMute = () => {
     if (isSpeaking) {
       stopSpeaking();
@@ -102,6 +207,7 @@ const Header = ({
       propToggleMute();
     }
   };
+
   const speakSelectedText = () => {
     if (isMuted) {
       if (speechSupported) {
@@ -121,6 +227,7 @@ const Header = ({
       speakText("No text selected. Please select some text to read aloud.");
     }
   };
+
   const handleMenuItemClick = (action) => {
     action();
     setIsMobileMenuOpen(false);
@@ -130,31 +237,36 @@ const Header = ({
     <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-slate-100 text-slate-600 mr-2 hover:bg-slate-200 transition-colors"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-1 border-blue-700 bg-transparent flex items-center justify-center">
-              <img
-                className="h-full w-full object-cover rounded-full"
-                src="./help.png"
-                alt="bot"
-              />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                BrainuBot
-              </h1>
-              <p className="text-xs text-slate-500">Student Help Desk</p>
+          <div className="flex items-center">
+            <div className="flex items-center">
+              <button
+                className="md:hidden p-2 rounded-lg bg-slate-100 text-slate-600 mr-2 hover:bg-slate-200 transition-colors"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-1 border-blue-700 bg-transparent flex items-center justify-center">
+                  <img
+                    className="h-full w-full object-cover rounded-full"
+                    src="./help.png"
+                    alt="bot"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    BrainuBot
+                  </h1>
+                  <p className="text-xs text-slate-500">Student Help Desk</p>
+                </div>
+              </div>
             </div>
           </div>
+
           <div className="hidden md:flex items-center space-x-4">
             <button
               onClick={() => setShowHistory(!showHistory)}
@@ -181,6 +293,36 @@ const Header = ({
                 ))}
               </select>
             </div>
+
+            <button
+              onClick={handleCallToggle}
+              className={`p-2 rounded-lg transition-colors relative ${
+                isCallActive
+                  ? "bg-green-100 text-green-600 animate-pulse"
+                  : vapiLoaded && !vapiError
+                  ? "bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+              title={
+                isCallActive
+                  ? "End Call"
+                  : vapiError
+                  ? "Voice assistant unavailable"
+                  : vapiLoaded
+                  ? "Start Call with Assistant"
+                  : "Voice assistant loading..."
+              }
+              disabled={vapiError || !vapiLoaded}
+            >
+              <IoCall className="w-5 h-5" />
+              {!vapiLoaded && !vapiError && (
+                <span className="absolute -top-1 -right-1 h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                </span>
+              )}
+            </button>
+
             <button
               onClick={toggleVoice}
               className={`p-2 rounded-lg transition-colors ${
@@ -196,6 +338,7 @@ const Header = ({
                 <MicOff className="w-5 h-5" />
               )}
             </button>
+
             {speechSupported && (
               <button
                 onClick={isSpeaking ? stopSpeaking : speakSelectedText}
@@ -213,6 +356,7 @@ const Header = ({
                 )}
               </button>
             )}
+
             <button
               onClick={handleToggleMute}
               className={`p-2 rounded-lg transition-colors ${
@@ -247,6 +391,7 @@ const Header = ({
           </div>
         </div>
       </div>
+
       <div
         ref={mobileMenuRef}
         className={`md:hidden bg-white border-t border-slate-200 shadow-lg overflow-y-auto transition-all duration-300 ease-in-out ${
@@ -282,6 +427,7 @@ const Header = ({
               </button>
             </div>
           </div>
+
           <div className="space-y-3 pt-2 border-t border-slate-200">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
               Settings
@@ -309,6 +455,7 @@ const Header = ({
                 </select>
               </div>
             </div>
+
             <div className="space-y-2">
               <label className="block text-xs font-medium text-slate-600">
                 Voice Controls
@@ -351,6 +498,7 @@ const Header = ({
                 </button>
               </div>
             </div>
+
             {speechSupported && (
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-600">
@@ -379,7 +527,48 @@ const Header = ({
                 </button>
               </div>
             )}
+
+            <div className="space-y-2 pt-2">
+              <label className="block text-xs font-medium text-slate-600">
+                Vapi Assistant
+              </label>
+              <button
+                onClick={() => handleMenuItemClick(handleCallToggle)}
+                className={`w-full flex items-center justify-center space-x-2 p-3 rounded-lg transition-colors relative ${
+                  isCallActive
+                    ? "bg-green-100 text-green-600 border border-green-200"
+                    : vapiLoaded && !vapiError
+                    ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                }`}
+                disabled={vapiError || !vapiLoaded}
+              >
+                <IoCall className="w-5 h-5" />
+                <span className="text-sm font-medium">
+                  {isCallActive
+                    ? "End Call"
+                    : vapiError
+                    ? "Unavailable"
+                    : vapiLoaded
+                    ? "Start Call"
+                    : "Loading..."}
+                </span>
+                {!vapiLoaded && !vapiError && (
+                  <span className="absolute top-1 right-1 h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                )}
+              </button>
+              {vapiError && (
+                <p className="text-xs text-red-500 mt-1">
+                  Voice assistant is currently unavailable. Please try again
+                  later.
+                </p>
+              )}
+            </div>
           </div>
+
           <div className="space-y-3 pt-2 border-t border-slate-200">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
               Categories
@@ -404,6 +593,7 @@ const Header = ({
               ))}
             </div>
           </div>
+
           <div className="pt-2 border-t border-slate-200">
             <button
               onClick={() => handleMenuItemClick(onLogout)}
